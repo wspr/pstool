@@ -1,0 +1,229 @@
+%
+% \title{The pstool package}
+% \author{Zebb Prime \& Will Robertson}
+% \maketitle
+%
+% \tableofcontents
+%
+% \part{Documentation}
+%
+% \section{Processing modes}
+%
+% Default commands:
+% \begin{description}
+% \item[\cs{psfig}] Process this figure if no PDF, or new EPS;
+% \item[\cs{psfig*}] Always process this figure; and maybe,
+% \item[\cs{psfig!}] Never process this figure?
+% \end{description}
+% The following package options override the above: \pkgopt{process=all}, \pkgopt{process=none} (the default is \pkgopt{process=auto}).
+%
+% \section{Cropping graphics}
+% Graphics are cropped to the appropriate size with the \pkg{preview} package. Sometimes, however, this will not be good enough when an inserted label protrudes from the natural bounding box of the figure. A good way to solve this problem is to use the \pkg{pdfcrop} program (requires a Perl installation under Windows). This can be activated in \pkg{pstool} with the \pkgopt{pdfcrop} package option.
+%
+%
+% \section{Todo}
+% \begin{enumerate}
+% \item Higher commands (\cmd\psfragfig, \cmd\matlabfig, \cmd\mathfig)
+% \item Automatic detection for PDF older than EPS (Windows; shells other than bash?)
+% \item Generalise "olding" code for multiple files.
+% \item mylatex integration
+% \end{enumerate}
+%
+% \part{Implementation}
+% \parindent=0pt
+
+\ProvidesPackage{pstool}[2008/08/03 v0.2 Wrapper for processing postscript figures]
+
+% Initialisations
+\newif\if@pstool@always@
+\newif\if@pstool@never@
+\newif\if@pstool@oldpdf@
+\newif\if@pstool@pdfcrop@
+\newwrite\pstool@out
+
+% Package options
+\RequirePackage{xkeyval}
+\DeclareOptionX{pdfcrop}{\@pstool@pdfcrop@true}
+
+\define@choicekey *{pstool.sty}{process}[\@tempa\@tempb]{all,none,auto}{%
+  \ifcase\@tempb\relax
+    \@pstool@always@true
+  \or
+    \@pstool@never@true
+  \or
+  \fi}
+
+\ProcessOptionsX
+
+% External packages
+\RequirePackage{catchfile,color,ifpdf,ifplatform,inversepath,graphicx,suffix}
+
+% These are cute:
+\providecommand\OnlyIfFileExists[2]{\IfFileExists{#1}{#2}{}}
+\providecommand\NotIfFileExists[2]{\IfFileExists{#1}{}{#2}}
+
+% Command line abstractions between platforms:
+\edef\pstool@cmdsep{\ifwindows\string&\else\string;\fi\space}
+\edef\pstool@rm{\ifwindows del \else rm -- \fi}
+
+\newcommand\pstool@try@rm[1]{%
+  \@for\@tempa:=#1\do{%
+    \OnlyIfFileExists{\@tempa}{\immediate\write18{\pstool@rm "\@tempa"}}}}
+
+% It is necessary while executing commands on the shell to write the exit status to a temporary file to test for failures in processing.
+\def\pstool@statusfile{status-deleteme.txt}
+\def\pstool@writestatus{%
+  \ifwindows
+    echo \pstool@percentsign ERRORLEVEL\@percentchar\space > \pstool@statusfile
+  \else
+    echo $? > \pstool@statusfile
+  \fi}
+
+% Write more to the file to ensure the buffer is flushed and the file is written to disk properly (allowing it to be read by \cmd\CatchFileEdef). (Maybe even a \texttt{touch} would be enough?)
+\def\pstool@flushstatus{%
+  \@tempcnta=0
+  \loop
+    \advance\@tempcnta by 1
+    \immediate\write18{%
+      cd "\ip@directpath"\pstool@cmdsep
+      echo "\@percentchar buffer text" >> \pstool@statusfile}%
+  \ifnum\@tempcnta<10\repeat}
+
+\def\pstool@retrievestatus#1{%
+  \pstool@flushstatus
+  \CatchFileEdef{#1}{\ip@directpath\pstool@statusfile}{}%
+  \pstool@try@rm{\ip@directpath\pstool@statusfile}% uses \cmd\@tempa\ internally
+}
+
+% use \texttt{ls} (or \texttt{dir}) to detect if the EPS is newer than the PDF:
+\def\pstool@datefiles{%
+  \edef\pstool@filenames{\ip@lastelement.eps\space \ip@lastelement.pdf\space}%
+  \immediate\write18{%
+    \ifwindows
+    \else
+      cd "\ip@directpath"\pstool@cmdsep
+      ls -t "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
+    \fi}%
+  %
+  \pstool@retrievestatus\@tempb
+  \ifx\@tempb\pstool@filenames
+    \@pstool@oldpdf@true
+  \else
+    \@pstool@oldpdf@false
+  \fi}
+
+% Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
+\def\pstool@exe#1{%
+  \immediate\write18{%
+    cd "\ip@directpath"\pstool@cmdsep
+    #1\pstool@cmdsep
+    \pstool@writestatus}%
+  %
+  \pstool@retrievestatus\@tempb
+  \ifnum\@tempb > 0
+    \PackageWarning{pstool}{Execution failed during process:^^J  #1^^J}%
+    \expandafter\pstool@abort
+  \fi}
+
+% Edit this definition to print something else when graphic processing fails.
+\def\pstool@error#1{\fbox{\color{red}\ttfamily An error occured processing this graphic.}}
+
+\def\pstool@abort#1\pstool@endprocess{\pstool@error}
+\let\pstool@endprocess\@firstofone
+
+% \section{Command parsing}
+% User input is \cmd\psfig\ (with optional \texttt* or \texttt! suffix) which turns into one of the following three macros depending on the mode.
+
+\newcommand\pstool@alwaysprocess[3][]{%
+  \inversepath*{#2}% calculate filename, path \& inverse path
+  \pstool@process[#1]{#2}{#3}}
+
+\newcommand\pstool@neverprocess[3][]{%
+  \includegraphics[#1]{#2}}
+
+% For regular operation, which processes the figure only if
+% the command is starred, or the PDF doesn't exist.
+\newcommand\pstool@maybeprocess[3][]{%
+  \inversepath*{#2}% calculate filename, path \& inverse path
+  \IfFileExists{#2.pdf}{%
+    \pstool@datefiles
+      \if@pstool@oldpdf@\expandafter\@firstoftwo
+        \else\expandafter\@secondoftwo\fi{%
+          \pstool@process[#1]{#2}{#3}%
+        }{%
+          \includegraphics[#1]{#2}}%
+  }{%
+    \pstool@process[#1]{#2}{#3}%
+  }}
+
+% \subsection{User commands}
+%  Finally, define \cmd\psfig\ as appropriate for the mode:
+\ifpdf
+  \if@pstool@always@
+    \let\psfig\pstool@alwaysprocess
+    \WithSuffix\def\psfig!{\pstool@alwaysprocess}
+    \WithSuffix\def\psfig*{\pstool@alwaysprocess}
+  \else\if@pstool@never@
+    \let\psfig\pstool@neverprocess
+    \WithSuffix\def\psfig!{\pstool@neverprocess}
+    \WithSuffix\def\psfig*{\pstool@neverprocess}
+  \else
+    \let\psfig\pstool@maybeprocess
+    \WithSuffix\def\psfig!{\pstool@neverprocess}
+    \WithSuffix\def\psfig*{\pstool@alwaysprocess}
+  \fi\fi
+\else
+  \let\psfig\pstool@neverprocess
+  \WithSuffix\def\psfig!{\pstool@neverprocess}
+  \WithSuffix\def\psfig*{\pstool@neverprocess}
+\fi
+
+% \section{The figure processing}
+\newcommand{\pstool@process}[3][]{%
+  \pstool@write@processfile{#1}{#2}{#3}%
+  \pstool@exe{latex -shell-escape -output-format=dvi
+      -interaction=batchmode "\ip@lastelement-process.tex"}%
+  \pstool@exe{dvips "\ip@lastelement-process.dvi"}%
+  \if@pstool@pdfcrop@
+    \pstool@exe{ps2pdf "\ip@lastelement-process.ps" "\ip@lastelement-process.pdf"}%
+    \pstool@exe{pdfcrop "\ip@lastelement-process.pdf" "\ip@lastelement.pdf"}%
+  \else
+    \pstool@exe{ps2pdf "\ip@lastelement-process.ps" "\ip@lastelement.pdf"}%
+  \fi
+  \pstool@endprocess{\includegraphics[#1]{#2}}}
+
+% The file that is written for processing is set up to read the preamble of the original document and set the graphic on an empty page (cropping to size is done either here with \pkg{preview} or later with \pkg{pdfcrop}).
+\def\pstool@write@processfile#1#2#3{%
+    \immediate\openout\pstool@out #2-process.tex\relax
+    \immediate\write\pstool@out{%
+      \unexpanded{%
+        \pdfoutput=0% force DVI mode if not already
+%
+% Input the main document; redefine the document environment so only the preamble is read:
+        \let\origdocument\document
+        \def\document{\endgroup\endinput}%
+      }\noexpand
+        \input{\ip@inversepath\jobname}%
+% Now the preamble of the process file: (restoring document's original meaning)
+      \if@pstool@pdfcrop@\else
+        \noexpand\usepackage[active,tightpage]{preview}
+      \fi
+      \unexpanded{%
+        \let\document\origdocument
+        \pagestyle{empty}% remove the page number
+        \begin{document}
+% And the document body to place the graphic on a page of its own:
+        \centering\null\vfill}%
+      \if@pstool@pdfcrop@\else
+        \noexpand\begin{preview}%
+      \fi
+        \unexpanded{#3}% this is the "psfrag" material
+        \noexpand\includegraphics[#1]{\ip@lastelement}%
+      \if@pstool@pdfcrop@\else
+        \noexpand\end{preview}%
+      \fi
+      \unexpanded{%
+        \vfill\end{document}}%
+      }%
+    \immediate\closeout\pstool@out}
+
