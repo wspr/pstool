@@ -1,0 +1,65 @@
+\immediate\write18{makeindex -r \jobname}
+\immediate\write18{makeindex -r -s gmglo.ist -o \jobname.gls \jobname.glo}
+
+\makeatletter
+\documentclass{article}
+\usepackage{xcolor}
+\usepackage[colorlinks]{hyperref}
+\usepackage{gmdoc}
+
+\stanzaskip=\bigskipamount
+
+\begin{obeyspaces}%
+\gdef\CodeSpacesGrey{%
+\def\gmd@DoTeXCodeSpace{%
+\obeyspaces\def {\texttt{\color{gray}\char`\ }}}%
+\def\gmd@texcodespace{\texttt{\color{gray}\char`\ }}}%
+\end{obeyspaces}
+\CodeSpacesGrey
+
+\let\pkg\textsf
+\def\pkgopt#1{\texttt{[#1]}}
+
+\usepackage{amsmath}
+\usepackage{pstool}
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
+\usepackage{lmodern}
+\usepackage[sc,osf]{mathpazo}
+\GetFileInfo{pstool.sty}
+\date{\fileversion\qquad\filedate}
+\begin{document}
+
+\title{The pstool package}
+\author{Zebb Prime \& Will Robertson}
+\maketitle
+
+\tableofcontents
+
+\part{Documentation}
+
+\section{Processing modes}
+
+Default commands:
+\begin{description}
+\item[\cs{psfig}] Process this figure if no PDF, or new EPS;
+\item[\cs{psfig*}] Always process this figure; and maybe,
+\item[\cs{psfig!}] Never process this figure?
+\end{description}
+The following package options override the above: \pkgopt{process=all}, \pkgopt{process=none} (the default is \pkgopt{process=auto}).
+
+\section{Cropping graphics}
+Graphics are cropped to the appropriate size with the \pkg{preview} package. Sometimes, however, this will not be good enough when an inserted label protrudes from the natural bounding box of the figure. A good way to solve this problem is to use the \pkg{pdfcrop} program (requires a Perl installation under Windows). This can be activated in \pkg{pstool} with the \pkgopt{pdfcrop} package option.
+
+\section{Todo}
+\begin{enumerate}
+\item Higher commands (\cmd\psfragfig, \cmd\matlabfig, \cmd\mathfig)
+\item Automatic detection for PDF older than EPS (Windows; shells other than bash?)
+\item Generalise "olding" code for multiple files.
+\item mylatex integration
+\end{enumerate}
+
+\part{Implementation}
+\parindent=0pt
+\DocInput{pstool.sty}
+\end{document}

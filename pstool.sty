@@ -1,38 +1,4 @@
-%
-% \title{The pstool package}
-% \author{Zebb Prime \& Will Robertson}
-% \maketitle
-%
-% \tableofcontents
-%
-% \part{Documentation}
-%
-% \section{Processing modes}
-%
-% Default commands:
-% \begin{description}
-% \item[\cs{psfig}] Process this figure if no PDF, or new EPS;
-% \item[\cs{psfig*}] Always process this figure; and maybe,
-% \item[\cs{psfig!}] Never process this figure?
-% \end{description}
-% The following package options override the above: \pkgopt{process=all}, \pkgopt{process=none} (the default is \pkgopt{process=auto}).
-%
-% \section{Cropping graphics}
-% Graphics are cropped to the appropriate size with the \pkg{preview} package. Sometimes, however, this will not be good enough when an inserted label protrudes from the natural bounding box of the figure. A good way to solve this problem is to use the \pkg{pdfcrop} program (requires a Perl installation under Windows). This can be activated in \pkg{pstool} with the \pkgopt{pdfcrop} package option.
-%
-%
-% \section{Todo}
-% \begin{enumerate}
-% \item Higher commands (\cmd\psfragfig, \cmd\matlabfig, \cmd\mathfig)
-% \item Automatic detection for PDF older than EPS (Windows; shells other than bash?)
-% \item Generalise "olding" code for multiple files.
-% \item mylatex integration
-% \end{enumerate}
-%
-% \part{Implementation}
-% \parindent=0pt
-
-\ProvidesPackage{pstool}[2008/08/03 v0.2 Wrapper for processing postscript figures]
+\ProvidesPackage{pstool}[2008/08/03 v0.2 Wrapper for processing PostScript/psfrag figures]
 
 % Initialisations
 \newif\if@pstool@always@
@@ -204,6 +170,7 @@
         \def\document{\endgroup\endinput}%
       }\noexpand
         \input{\ip@inversepath\jobname}%
+%
 % Now the preamble of the process file: (restoring document's original meaning)
       \if@pstool@pdfcrop@\else
         \noexpand\usepackage[active,tightpage]{preview}
@@ -212,6 +179,7 @@
         \let\document\origdocument
         \pagestyle{empty}% remove the page number
         \begin{document}
+%
 % And the document body to place the graphic on a page of its own:
         \centering\null\vfill}%
       \if@pstool@pdfcrop@\else
