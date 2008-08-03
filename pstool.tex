@@ -1,4 +1,21 @@
 \RequirePackage{filecontents}
+\begin{filecontents*}{README.txt}
+__________________
+The pstool package
+v0.2
+
+A package like "pst-pdf" for processing PostScript graphics 
+within pdfLaTeX documets. The difference with this package 
+is that every graphic is processed separately, drastically 
+speeding up compilation time.
+
+Running `latex` on pstool.tex will produce pstool.sty. Executing
+  `pdflatex "\let\compile=y\input pstool.tex"`
+will produce the typeset documentation as well.
+
+Will Robertson & Zebb Prime
+Copyright 2008
+\end{filecontents*}
 \begin{filecontents*}{pstool.sty}
 %
 % \title{The pstool package}
@@ -232,8 +249,15 @@
 \end{filecontents*}
 \makeatletter
 
-% Uncomment this to avoid typesetting the documentation:
-%\@@end
+\@tempswafalse
+\ifdefined\compile
+  \ifx\compile y\else
+    \@tempswatrue
+  \fi
+\else
+  \@tempswatrue
+\fi
+\if@tempswa\expandafter\@@end\fi
 
 \immediate\write18{makeindex -r \jobname}
 \immediate\write18{makeindex -r -s gmglo.ist -o \jobname.gls \jobname.glo}
