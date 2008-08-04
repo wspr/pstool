@@ -10,7 +10,7 @@ is that every graphic is processed separately, drastically
 speeding up compilation time.
 
 Running `latex` on pstool.tex will produce pstool.sty and pstool.drv. 
-Executing `pdflatex pstool.drv` to produce the typeset documentation.
+Executing `pdflatex pstool.drv` produces the typeset documentation.
 
 Will Robertson & Zebb Prime
 Copyright 2008
@@ -84,9 +84,10 @@ Copyright 2008
 \def\pstool@datefiles{%
   \edef\pstool@filenames{\ip@lastelement.eps\space \ip@lastelement.pdf\space}%
   \immediate\write18{%
+      cd "\ip@directpath"\pstool@cmdsep     
     \ifwindows
+      dir /T:W /B /O-D "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
     \else
-      cd "\ip@directpath"\pstool@cmdsep 
       ls -t "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
     \fi}%
   %
@@ -273,8 +274,8 @@ Graphics are cropped to the appropriate size with the \pkg{preview} package. Som
 \section{Todo} 
 \begin{enumerate}
 \item Higher commands (\cmd\psfragfig, \cmd\matlabfig, \cmd\mathfig)
-\item Automatic detection for PDF older than EPS (Windows; shells other than bash?)
 \item Generalise "olding" code for multiple files.
+\item Check for correct behaviour in shells other than bash.
 \item mylatex integration
 \end{enumerate}
 

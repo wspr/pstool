@@ -65,9 +65,10 @@
 \def\pstool@datefiles{%
   \edef\pstool@filenames{\ip@lastelement.eps\space \ip@lastelement.pdf\space}%
   \immediate\write18{%
-    \ifwindows
-    \else
       cd "\ip@directpath"\pstool@cmdsep
+    \ifwindows
+      dir /T:W /B /O-D "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
+    \else
       ls -t "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
     \fi}%
   %

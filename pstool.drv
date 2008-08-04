@@ -54,8 +54,8 @@ Graphics are cropped to the appropriate size with the \pkg{preview} package. Som
 \section{Todo}
 \begin{enumerate}
 \item Higher commands (\cmd\psfragfig, \cmd\matlabfig, \cmd\mathfig)
-\item Automatic detection for PDF older than EPS (Windows; shells other than bash?)
 \item Generalise "olding" code for multiple files.
+\item Check for correct behaviour in shells other than bash.
 \item mylatex integration
 \end{enumerate}
 
