@@ -47,13 +47,15 @@
 
 While pdf\/\LaTeX\ is a great improvement in many ways over the `old method' of \DVI$\to$\PS$\to$\PDF, it loses the ability to interface with a generic PostScript workflow, used to great effect in numerous packages, most notably \pkg{PSTricks} and \pkg{psfrag}.
 
-Until now, the best way to use these packages while running pdf\/\LaTeX\ has been to use the \pkg{pst-pdf} package, which processes the entire document through a filter the \DVI$\to$\PS$\to$\PDF\ chain and
+Until now, the best way to use these packages while running pdf\/\LaTeX\ has been to use the \pkg{pst-pdf} package, which processes the entire document through a filter, sending each relevant PostScript environment through \DVI$\to$\PS$\to$\PDF. The resulting \PDF\ versions of each image are then included into the pdf\/\LaTeX\ document. The \pkg{auto-pst-pdf} package provided a wrapper to execute this separate process automatically.
+
+The disadvantage in this route is that for every document compilation, \emph{every} graphic must be re-processed. The \pkg{pstool} package uses a different approach to allow each graphic to be processed only as-needed, speeding up and simplifying the typesetting of the main document.
 
 \section{Processing modes}
 
-Default commands:
+The main command provided by this package is\\\hspace*{4em}\cmd\psfig\arg[graphicx options]\arg{filename}\arg{graphic data}.\\ By default it can be used in the following modes:
 \begin{description}
-\item[\cs{psfig}] Process this figure if no PDF, or new EPS;
+\item[\cs{psfig}] Process the graphic \<filename> if no \PDF\ of the same name exists, or the source \EPS\ file is \emph{newer} than the \PDF;
 \item[\cs{psfig*}] Always process this figure; and,
 \item[\cs{psfig!}] Never process this figure.
 \end{description}
@@ -70,6 +72,7 @@ Graphics are cropped to the appropriate size with the \pkg{preview} package. Som
 \item Generalise "olding" code for multiple files.
 \item Basic \EPS$\to$\PDF\ processing (no need to read in the document preamble).
 \item Check for correct behaviour in shells other than bash.
+\item More flexible usage (support things like \verb|\begin{postscript}| in \pkg{pst-pdf}).
 \item mylatex integration
 \end{enumerate}
 

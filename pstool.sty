@@ -3,7 +3,6 @@
 % Initialisations
 \newif\if@pstool@always@
 \newif\if@pstool@never@
-\newif\if@pstool@oldpdf@
 \newif\if@pstool@pdfcrop@
 \newwrite\pstool@out
 
@@ -33,9 +32,13 @@
 \edef\pstool@rm{\ifwindows del \else rm -- \fi}
 
 \newcommand\pstool@try@rm[1]{%
-  \@for\@tempa:=#1\do{%
-    \OnlyIfFileExists{\@tempa}{\immediate\write18{\pstool@rm "\@tempa"}}}}
-
+  \begingroup
+    \@for\@tempa:=#1\do{%
+      \OnlyIfFileExists{\ip@directpath\@tempa}{%
+        \immediate\write18{%
+          cd "\ip@directpath"\pstool@cmdsep
+          \pstool@rm "\@tempa"}}}%
+  \endgroup}
 
 % Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
 \def\pstool@exe#1{%
@@ -43,8 +46,8 @@
     cd "\ip@directpath"\pstool@cmdsep
     \pstool@writestatus{#1}%
   }%
-  \pstool@retrievestatus\@tempb
-  \ifnum\@tempb > 0
+  \pstool@retrievestatus\@tempa
+  \ifnum\@tempa > 0
     \PackageWarning{pstool}{Execution failed during process:^^J  #1^^J}%
     \expandafter\pstool@abort
   \fi}
@@ -66,21 +69,20 @@
   \fi
 }
 
+% Read the exit status from the temporary file and delete it.
 \def\pstool@retrievestatus#1{%
-  \ifwindows\else\pstool@flushstatus\fi
+  \pstool@touchstatus
   \CatchFileEdef{#1}{\ip@directpath\pstool@statusfile}{}%
-  \pstool@try@rm{\ip@directpath\pstool@statusfile}% uses \cmd\@tempa\ internally
+  \pstool@try@rm{\pstool@statusfile}%
 }
 
-% Write more to the file to ensure the buffer is flushed and the file is written to disk properly (allowing it to be read by \cmd\CatchFileEdef). (Maybe even a \texttt{touch} would be enough?)
-\def\pstool@flushstatus{%
-  \@tempcnta=0
-  \loop
-    \advance\@tempcnta by 1
+% This ensures the file is written to disk properly (allowing it to be read by \cmd\CatchFileEdef). Not necessary on Windows, whose file writing is evidently more crude/immediate.
+\def\pstool@touchstatus{%
+  \ifwindows\else
     \immediate\write18{%
       cd "\ip@directpath"\pstool@cmdsep
-      echo "\@percentchar buffer text" >> \pstool@statusfile}%
-  \ifnum\@tempcnta<10\repeat
+      touch \pstool@statusfile}%
+  \fi
 }
 
 % \subsection{File age detection}
@@ -88,18 +90,18 @@
 \def\pstool@datefiles{%
   \edef\pstool@filenames{\ip@lastelement.eps\space \ip@lastelement.pdf\space}%
   \immediate\write18{%
-      cd "\ip@directpath"\pstool@cmdsep
+    cd "\ip@directpath"\pstool@cmdsep
     \ifwindows
       dir /T:W /B /O-D "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
     \else
       ls -t "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
     \fi
   }%
-  \pstool@retrievestatus\@tempb
-  \ifx\@tempb\pstool@filenames
-    \@pstool@oldpdf@true
+  \pstool@retrievestatus\@tempa
+  \ifx\@tempa\pstool@filenames
+    \@tempswatrue
   \else
-    \@pstool@oldpdf@false
+    \@tempswafalse
   \fi
 }
 
@@ -120,11 +122,11 @@
   \inversepath*{#2}% calculate filename, path \& inverse path
   \IfFileExists{#2.pdf}{%
     \pstool@datefiles
-      \if@pstool@oldpdf@\expandafter\@firstoftwo
-        \else\expandafter\@secondoftwo\fi{%
-          \pstool@process[#1]{#2}{#3}%
-        }{%
-          \includegraphics[#1]{#2}}%
+    \if@tempswa\expandafter\@firstoftwo
+      \else\expandafter\@secondoftwo\fi{%
+        \pstool@process[#1]{#2}{#3}%
+      }{%
+        \includegraphics[#1]{#2}}%
   }{%
     \pstool@process[#1]{#2}{#3}%
   }}

@@ -22,7 +22,6 @@ Copyright 2008
 % Initialisations
 \newif\if@pstool@always@
 \newif\if@pstool@never@
-\newif\if@pstool@oldpdf@
 \newif\if@pstool@pdfcrop@
 \newwrite\pstool@out
 
@@ -52,9 +51,13 @@ Copyright 2008
 \edef\pstool@rm{\ifwindows del \else rm -- \fi}
 
 \newcommand\pstool@try@rm[1]{%
-  \@for\@tempa:=#1\do{%
-    \OnlyIfFileExists{\@tempa}{\immediate\write18{\pstool@rm "\@tempa"}}}}
-
+  \begingroup
+    \@for\@tempa:=#1\do{%
+      \OnlyIfFileExists{\ip@directpath\@tempa}{%
+        \immediate\write18{%
+          cd "\ip@directpath"\pstool@cmdsep 
+          \pstool@rm "\@tempa"}}}%
+  \endgroup}
 
 % Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
 \def\pstool@exe#1{%
@@ -62,8 +65,8 @@ Copyright 2008
     cd "\ip@directpath"\pstool@cmdsep 
     \pstool@writestatus{#1}%
   }%
-  \pstool@retrievestatus\@tempb
-  \ifnum\@tempb > 0
+  \pstool@retrievestatus\@tempa
+  \ifnum\@tempa > 0
     \PackageWarning{pstool}{Execution failed during process:^^J  #1^^J}%
     \expandafter\pstool@abort
   \fi}
@@ -85,21 +88,20 @@ Copyright 2008
   \fi
 }
 
+% Read the exit status from the temporary file and delete it.
 \def\pstool@retrievestatus#1{%
-  \ifwindows\else\pstool@flushstatus\fi
+  \pstool@touchstatus
   \CatchFileEdef{#1}{\ip@directpath\pstool@statusfile}{}%
-  \pstool@try@rm{\ip@directpath\pstool@statusfile}% uses \cmd\@tempa\ internally
+  \pstool@try@rm{\pstool@statusfile}%
 }
 
-% Write more to the file to ensure the buffer is flushed and the file is written to disk properly (allowing it to be read by \cmd\CatchFileEdef). (Maybe even a \texttt{touch} would be enough?)
-\def\pstool@flushstatus{%
-  \@tempcnta=0
-  \loop
-    \advance\@tempcnta by 1
+% This ensures the file is written to disk properly (allowing it to be read by \cmd\CatchFileEdef). Not necessary on Windows, whose file writing is evidently more crude/immediate.
+\def\pstool@touchstatus{%
+  \ifwindows\else
     \immediate\write18{%
       cd "\ip@directpath"\pstool@cmdsep 
-      echo "\@percentchar buffer text" >> \pstool@statusfile}%
-  \ifnum\@tempcnta<10\repeat
+      touch \pstool@statusfile}%
+  \fi
 }
 
 % \subsection{File age detection}
@@ -107,18 +109,18 @@ Copyright 2008
 \def\pstool@datefiles{%
   \edef\pstool@filenames{\ip@lastelement.eps\space \ip@lastelement.pdf\space}%
   \immediate\write18{%
-      cd "\ip@directpath"\pstool@cmdsep     
+    cd "\ip@directpath"\pstool@cmdsep     
     \ifwindows
       dir /T:W /B /O-D "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
     \else
       ls -t "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
     \fi
   }%
-  \pstool@retrievestatus\@tempb
-  \ifx\@tempb\pstool@filenames
-    \@pstool@oldpdf@true
+  \pstool@retrievestatus\@tempa
+  \ifx\@tempa\pstool@filenames
+    \@tempswatrue
   \else
-    \@pstool@oldpdf@false
+    \@tempswafalse
   \fi
 }
 
@@ -139,11 +141,11 @@ Copyright 2008
   \inversepath*{#2}% calculate filename, path \& inverse path
   \IfFileExists{#2.pdf}{%
     \pstool@datefiles
-      \if@pstool@oldpdf@\expandafter\@firstoftwo
-        \else\expandafter\@secondoftwo\fi{%
-          \pstool@process[#1]{#2}{#3}%
-        }{%
-          \includegraphics[#1]{#2}}%
+    \if@tempswa\expandafter\@firstoftwo
+      \else\expandafter\@secondoftwo\fi{%
+        \pstool@process[#1]{#2}{#3}%
+      }{%
+        \includegraphics[#1]{#2}}%
   }{%
     \pstool@process[#1]{#2}{#3}%
   }}
@@ -273,13 +275,15 @@ Copyright 2008
 
 While pdf\/\LaTeX\ is a great improvement in many ways over the `old method' of \DVI$\to$\PS$\to$\PDF, it loses the ability to interface with a generic PostScript workflow, used to great effect in numerous packages, most notably \pkg{PSTricks} and \pkg{psfrag}.
 
-Until now, the best way to use these packages while running pdf\/\LaTeX\ has been to use the \pkg{pst-pdf} package, which processes the entire document through a filter the \DVI$\to$\PS$\to$\PDF\ chain and  
+Until now, the best way to use these packages while running pdf\/\LaTeX\ has been to use the \pkg{pst-pdf} package, which processes the entire document through a filter, sending each relevant PostScript environment through \DVI$\to$\PS$\to$\PDF. The resulting \PDF\ versions of each image are then included into the pdf\/\LaTeX\ document. The \pkg{auto-pst-pdf} package provided a wrapper to execute this separate process automatically.
+
+The disadvantage in this route is that for every document compilation, \emph{every} graphic must be re-processed. The \pkg{pstool} package uses a different approach to allow each graphic to be processed only as-needed, speeding up and simplifying the typesetting of the main document.
 
 \section{Processing modes}
 
-Default commands:
+The main command provided by this package is\\\hspace*{4em}\cmd\psfig\arg[graphicx options]\arg{filename}\arg{graphic data}.\\ By default it can be used in the following modes:
 \begin{description}
-\item[\cs{psfig}] Process this figure if no PDF, or new EPS;
+\item[\cs{psfig}] Process the graphic \<filename> if no \PDF\ of the same name exists, or the source \EPS\ file is \emph{newer} than the \PDF;
 \item[\cs{psfig*}] Always process this figure; and,
 \item[\cs{psfig!}] Never process this figure.
 \end{description}
@@ -296,6 +300,7 @@ Graphics are cropped to the appropriate size with the \pkg{preview} package. Som
 \item Generalise "olding" code for multiple files.
 \item Basic \EPS$\to$\PDF\ processing (no need to read in the document preamble).
 \item Check for correct behaviour in shells other than bash.
+\item More flexible usage (support things like \verb|\begin{postscript}| in \pkg{pst-pdf}).
 \item mylatex integration
 \end{enumerate}
 
