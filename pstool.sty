@@ -36,56 +36,13 @@
   \@for\@tempa:=#1\do{%
     \OnlyIfFileExists{\@tempa}{\immediate\write18{\pstool@rm "\@tempa"}}}}
 
-% It is necessary while executing commands on the shell to write the exit status to a temporary file to test for failures in processing.
-\def\pstool@statusfile{status-deleteme.txt}
-\def\pstool@writestatus{%
-  \ifwindows
-    echo \pstool@percentsign ERRORLEVEL\@percentchar\space > \pstool@statusfile
-  \else
-    echo $? > \pstool@statusfile
-  \fi}
-
-% Write more to the file to ensure the buffer is flushed and the file is written to disk properly (allowing it to be read by \cmd\CatchFileEdef). (Maybe even a \texttt{touch} would be enough?)
-\def\pstool@flushstatus{%
-  \@tempcnta=0
-  \loop
-    \advance\@tempcnta by 1
-    \immediate\write18{%
-      cd "\ip@directpath"\pstool@cmdsep
-      echo "\@percentchar buffer text" >> \pstool@statusfile}%
-  \ifnum\@tempcnta<10\repeat}
-
-\def\pstool@retrievestatus#1{%
-  \pstool@flushstatus
-  \CatchFileEdef{#1}{\ip@directpath\pstool@statusfile}{}%
-  \pstool@try@rm{\ip@directpath\pstool@statusfile}% uses \cmd\@tempa\ internally
-}
-
-% use \texttt{ls} (or \texttt{dir}) to detect if the EPS is newer than the PDF:
-\def\pstool@datefiles{%
-  \edef\pstool@filenames{\ip@lastelement.eps\space \ip@lastelement.pdf\space}%
-  \immediate\write18{%
-      cd "\ip@directpath"\pstool@cmdsep
-    \ifwindows
-      dir /T:W /B /O-D "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
-    \else
-      ls -t "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
-    \fi}%
-  %
-  \pstool@retrievestatus\@tempb
-  \ifx\@tempb\pstool@filenames
-    \@pstool@oldpdf@true
-  \else
-    \@pstool@oldpdf@false
-  \fi}
 
 % Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
 \def\pstool@exe#1{%
   \immediate\write18{%
     cd "\ip@directpath"\pstool@cmdsep
-    #1\pstool@cmdsep
-    \pstool@writestatus}%
-  %
+    \pstool@writestatus{#1}%
+  }%
   \pstool@retrievestatus\@tempb
   \ifnum\@tempb > 0
     \PackageWarning{pstool}{Execution failed during process:^^J  #1^^J}%
@@ -97,6 +54,55 @@
 
 \def\pstool@abort#1\pstool@endprocess{\pstool@error}
 \let\pstool@endprocess\@firstofone
+
+% It is necessary while executing commands on the shell to write the exit status to a temporary file to test for failures in processing. \verb|#1 & echo %ERRORLEVEL%| doesn't return the correct value inside a \cs{write18} in Windows, so we have to do something different there.
+\def\pstool@statusfile{status-deleteme.txt}
+\def\pstool@writestatus#1{%
+  \ifwindows
+    echo 0 > \pstool@statusfile\pstool@cmdsep
+    #1 \detokenize{||} echo 1 > \pstool@statusfile
+  \else
+    #1\pstool@cmdsep echo $? > \pstool@statusfile
+  \fi
+}
+
+\def\pstool@retrievestatus#1{%
+  \ifwindows\else\pstool@flushstatus\fi
+  \CatchFileEdef{#1}{\ip@directpath\pstool@statusfile}{}%
+  \pstool@try@rm{\ip@directpath\pstool@statusfile}% uses \cmd\@tempa\ internally
+}
+
+% Write more to the file to ensure the buffer is flushed and the file is written to disk properly (allowing it to be read by \cmd\CatchFileEdef). (Maybe even a \texttt{touch} would be enough?)
+\def\pstool@flushstatus{%
+  \@tempcnta=0
+  \loop
+    \advance\@tempcnta by 1
+    \immediate\write18{%
+      cd "\ip@directpath"\pstool@cmdsep
+      echo "\@percentchar buffer text" >> \pstool@statusfile}%
+  \ifnum\@tempcnta<10\repeat
+}
+
+% \subsection{File age detection}
+% Use \texttt{ls} (or \texttt{dir}) to detect if the EPS is newer than the PDF:
+\def\pstool@datefiles{%
+  \edef\pstool@filenames{\ip@lastelement.eps\space \ip@lastelement.pdf\space}%
+  \immediate\write18{%
+      cd "\ip@directpath"\pstool@cmdsep
+    \ifwindows
+      dir /T:W /B /O-D "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
+    \else
+      ls -t "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
+    \fi
+  }%
+  \pstool@retrievestatus\@tempb
+  \ifx\@tempb\pstool@filenames
+    \@pstool@oldpdf@true
+  \else
+    \@pstool@oldpdf@false
+  \fi
+}
+
 
 % \section{Command parsing}
 % User input is \cmd\psfig\ (with optional \texttt* or \texttt! suffix) which turns into one of the following three macros depending on the mode.
