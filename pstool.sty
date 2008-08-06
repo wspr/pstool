@@ -1,5 +1,8 @@
 \ProvidesPackage{pstool}[2008/08/03 v0.2 Wrapper for processing PostScript/psfrag figures]
 
+% External packages
+\RequirePackage{catchfile,color,ifpdf,ifplatform,inversepath,graphicx,suffix,xkeyval}
+
 % Initialisations
 \newif\if@pstool@always@
 \newif\if@pstool@never@
@@ -7,10 +10,9 @@
 \newwrite\pstool@out
 
 % Package options
-\RequirePackage{xkeyval}
 \DeclareOptionX{pdfcrop}{\@pstool@pdfcrop@true}
 
-\define@choicekey *{pstool.sty}{process}[\@tempa\@tempb]{all,none,auto}{%
+\define@choicekey*{pstool.sty}{process}[\@tempa\@tempb]{all,none,auto}{%
   \ifcase\@tempb\relax
     \@pstool@always@true
   \or
@@ -18,10 +20,15 @@
   \or
   \fi}
 
-\ProcessOptionsX
+\ifshellescape\else
+  \ExecuteOptionsX{process=none}
+  \PackageWarning{pstool}{^^J\space\space%
+    Package option [process=none] activated^^J\space\space
+    because -shell-escape is not enabled.^^J%
+    This warning occurred}
+\fi
 
-% External packages
-\RequirePackage{catchfile,color,ifpdf,ifplatform,inversepath,graphicx,suffix}
+\ProcessOptionsX
 
 % These are cute:
 \providecommand\OnlyIfFileExists[2]{\IfFileExists{#1}{#2}{}}

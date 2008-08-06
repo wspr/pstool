@@ -68,6 +68,7 @@ Graphics are cropped to the appropriate size with the \pkg{preview} package. Som
 
 \section{Todo}
 \begin{enumerate}
+\item Use \verb|dir /h & call echo ^%ERRORLEVEL^%|.
 \item Higher commands (\cmd\psfragfig, \cmd\matlabfig, \cmd\mathfig)
 \item Generalise "olding" code for multiple files.
 \item Basic \EPS$\to$\PDF\ processing (no need to read in the document preamble).

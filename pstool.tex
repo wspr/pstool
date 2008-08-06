@@ -9,8 +9,13 @@ within pdfLaTeX documets. The difference with this package
 is that every graphic is processed separately, drastically 
 speeding up compilation time.
 
-Running `latex` on pstool.tex will produce pstool.sty and pstool.drv. 
-Executing `pdflatex pstool.drv` produces the typeset documentation.
+Running `latex` on pstool.tex will produce the files
+  pstool.ins, pstool.sty, pstool.drv, and README.txt,
+and compile the PDF documentation.
+
+Executing:
+  `tex pstool.ins` produces the files above except pstool.ins.
+  `latex pstool.drv` produces the typeset documentation.
 
 Will Robertson & Zebb Prime
 Copyright 2008
@@ -19,6 +24,9 @@ Copyright 2008
 \begin{filecontents*}{pstool.sty}
 \ProvidesPackage{pstool}[2008/08/03 v0.2 Wrapper for processing PostScript/psfrag figures]
 
+% External packages
+\RequirePackage{catchfile,color,ifpdf,ifplatform,inversepath,graphicx,suffix,xkeyval}
+
 % Initialisations
 \newif\if@pstool@always@
 \newif\if@pstool@never@
@@ -26,10 +34,9 @@ Copyright 2008
 \newwrite\pstool@out
 
 % Package options
-\RequirePackage{xkeyval}
 \DeclareOptionX{pdfcrop}{\@pstool@pdfcrop@true}
 
-\define@choicekey *{pstool.sty}{process}[\@tempa\@tempb]{all,none,auto}{% 
+\define@choicekey*{pstool.sty}{process}[\@tempa\@tempb]{all,none,auto}{% 
   \ifcase\@tempb\relax 
     \@pstool@always@true
   \or 
@@ -37,10 +44,15 @@ Copyright 2008
   \or
   \fi} 
 
-\ProcessOptionsX
+\ifshellescape\else
+  \ExecuteOptionsX{process=none}
+  \PackageWarning{pstool}{^^J\space\space%
+    Package option [process=none] activated^^J\space\space 
+    because -shell-escape is not enabled.^^J%
+    This warning occurred}
+\fi
 
-% External packages
-\RequirePackage{catchfile,color,ifpdf,ifplatform,inversepath,graphicx,suffix}
+\ProcessOptionsX
 
 % These are cute:
 \providecommand\OnlyIfFileExists[2]{\IfFileExists{#1}{#2}{}}
@@ -296,6 +308,7 @@ Graphics are cropped to the appropriate size with the \pkg{preview} package. Som
 
 \section{Todo} 
 \begin{enumerate}
+\item Use \verb|dir /h & call echo ^%ERRORLEVEL^%|.
 \item Higher commands (\cmd\psfragfig, \cmd\matlabfig, \cmd\mathfig)
 \item Generalise "olding" code for multiple files.
 \item Basic \EPS$\to$\PDF\ processing (no need to read in the document preamble).
@@ -310,4 +323,17 @@ Graphics are cropped to the appropriate size with the \pkg{preview} package. Som
 \end{document}
 \end{filecontents*}
 
+% Conditionally compile the documentation & generate the .ins file:
+\providecommand\pstoolCompile{Y}
+\expandafter\ifx\pstoolCompile N
+  \expandafter\endinput
+\fi
+
+\begin{filecontents*}{pstool.ins}
+%&latex
+\newcommand\pstoolCompile{N}
+\input pstool.tex
 \csname@@end\endcsname
+\end{filecontents*}
+
+\input pstool.drv
