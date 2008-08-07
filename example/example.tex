@@ -1,12 +1,18 @@
 \documentclass{article}
+\usepackage{color}
+\color{red}
 \usepackage{psfrag}
 \usepackage[process=auto]{pstool}
 \begin{document}
-\psfig*{trial}{%
+
+\pstool{trial}{%
   \psfrag{[Mp]}{$M_p$!}%
 }
 
-\psfig{trial/trial}{%
+\pstool{trial/trial}{%
   \psfrag{[Mp]}{$Z_p$}%
 }
+
+\epsfig{trial2}
+
 \end{document}
