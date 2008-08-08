@@ -1,4 +1,4 @@
-\ProvidesPackage{pstool}[2008/08/06 v0.4
+\ProvidesPackage{pstool}[2008/08/08 v0.5
   Wrapper for processing PostScript/psfrag figures]
 
 % External packages
@@ -25,6 +25,13 @@
   \or
   \fi}
 
+\DeclareOptionX{cleanup}{%
+  \def\pstool@rm@files{#1}}
+\ExecuteOptionsX{cleanup={tex,dvi,ps,pdf,log,aux}}
+
+\DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
+\ExecuteOptionsX{suffix={-process}}
+
 \ifshellescape\else
   \ExecuteOptionsX{process=none}
   \PackageWarning{pstool}{^^J\space\space%
@@ -41,16 +48,14 @@
 
 % Command line abstractions between platforms:
 \edef\pstool@cmdsep{\ifwindows\string&\else\string;\fi\space}
-\edef\pstool@rm{\ifwindows del \else rm -- \fi}
+\edef\pstool@rm@cmd{\ifwindows del \else rm -- \fi}
 
-\newcommand\pstool@try@rm[1]{%
-  \begingroup
-    \@for\@tempa:=#1\do{%
-      \OnlyIfFileExists{\ip@directpath\@tempa}{%
-        \immediate\write18{%
-          cd "\ip@directpath"\pstool@cmdsep
-          \pstool@rm "\@tempa"}}}%
-  \endgroup}
+% Delete a file if it exists:
+\newcommand\pstool@rm[1]{%
+  \OnlyIfFileExists{\ip@directpath#1}{%
+    \immediate\write18{%
+      cd "\ip@directpath"\pstool@cmdsep\pstool@rm@cmd "#1"}}%
+}
 
 % Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
 \def\pstool@exe#1{%
@@ -71,7 +76,7 @@
 \def\pstool@abort#1\pstool@endprocess{\pstool@error}
 \let\pstool@endprocess\@firstofone
 
-% It is necessary while executing commands on the shell to write the exit status to a temporary file to test for failures in processing. (If all versions of \texttt{pdflatex} supported input pipes, things might be different.)
+% It is necessary while executing commands on the shell to write the exit status to a temporary file to test for failures in processing. (If all versions of |pdflatex| supported input pipes, things might be different.)
 \def\pstool@statusfile{status-deleteme.txt}
 \def\pstool@writestatus#1{%
   \ifwindows
@@ -87,7 +92,7 @@
 \def\pstool@retrievestatus#1{%
   \pstool@touchstatus
   \CatchFileEdef{#1}{\ip@directpath\pstool@statusfile}{}%
-  \pstool@try@rm{\pstool@statusfile}%
+  \pstool@rm{\pstool@statusfile}%
 }
 
 % This ensures the file is written to disk properly (allowing it to be read by \cmd\CatchFileEdef). Not necessary on Windows, whose file writing is evidently more crude/immediate.
@@ -100,7 +105,7 @@
 }
 
 % \subsection{File age detection}
-% Use \texttt{ls} (or \texttt{dir}) to detect if the EPS is newer than the PDF:
+% Use |ls| (or |dir|) to detect if the EPS is newer than the PDF:
 \def\pstool@datefiles{%
   \edef\pstool@filenames{\ip@lastelement.eps\space \ip@lastelement.pdf\space}%
   \immediate\write18{%
@@ -121,7 +126,7 @@
 
 
 % \section{Command parsing}
-% User input is \cmd\pstool\ (with optional \texttt* or \texttt! suffix) which turns into one of the following three macros depending on the mode.
+% User input is \cmd\pstool\ (with optional |*| or |!| suffix) which turns into one of the following three macros depending on the mode.
 
 \newcommand\pstool@alwaysprocess[3][]{%
   \inversepath*{#2}% calculate filename, path \& inverse path
@@ -168,18 +173,24 @@
 \fi
 
 % \section{The figure processing}
+
+% \cmd\ip@lastelement\ is the filename of the figure stripped of its path (if any)
+\def\pstool@jobname{\ip@lastelement\pstool@suffix}
+
 \newcommand{\pstool@process}[3][]{%
   \pstool@write@processfile{#1}{#2}{#3}%
   \pstool@exe{latex -shell-escape -output-format=dvi
-      -interaction=batchmode "\ip@lastelement-process.tex"}%
-  \pstool@exe{dvips "\ip@lastelement-process.dvi"}%
+      -interaction=batchmode "\pstool@jobname.tex"}%
+  \pstool@exe{dvips "\pstool@jobname.dvi"}%
   \if@pstool@pdfcrop@
-    \pstool@exe{ps2pdf "\ip@lastelement-process.ps" "\ip@lastelement-process.pdf"}%
-    \pstool@exe{pdfcrop "\ip@lastelement-process.pdf" "\ip@lastelement.pdf"}%
+    \pstool@exe{ps2pdf "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
+    \pstool@exe{pdfcrop "\pstool@jobname.pdf" "\ip@lastelement.pdf"}%
   \else
-    \pstool@exe{ps2pdf "\ip@lastelement-process.ps" "\ip@lastelement.pdf"}%
+    \pstool@exe{ps2pdf "\pstool@jobname.ps" "\ip@lastelement.pdf"}%
   \fi
-  \pstool@endprocess{\includegraphics[#1]{#2}}}
+  \pstool@endprocess{%
+    \pstool@cleanup
+    \includegraphics[#1]{#2}}}
 
 % The file that is written for processing is set up to read the preamble of the original document and set the graphic on an empty page (cropping to size is done either here with \pkg{preview} or later with \pkg{pdfcrop}).
 \def\pstool@write@processfile#1#2#3{%
@@ -229,9 +240,14 @@
       }%
     \immediate\closeout\pstool@out}
 
+\def\pstool@cleanup{%
+  \@for\@ii:=\pstool@rm@files\do{%
+    \pstool@rm{\pstool@jobname.\@ii}%
+}}
+
 % \section{User commands}
 %
-% These all support the suffixes \verb|*| and \verb|!|, so each user command is defined as a wrapper to \cmd\pstool.
+% These all support the suffixes |*| and |!|, so each user command is defined as a wrapper to \cmd\pstool.
 
 % for plain EPS figures (no psfrag):
 \newcommand\epsfig[2][]{\pstool@epsfig{\pstool}[#1]{#2}}
