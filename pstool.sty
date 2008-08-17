@@ -66,10 +66,10 @@
   \fi}
 
 % Edit this definition to print something else when graphic processing fails.
-\def\pstool@error#1{\fbox{\color{red}\ttfamily\scshape
-  An error occured processing this graphic.}}
+\def\pstool@error{\fbox{\parbox{\linewidth}{\color{red}\ttfamily\scshape
+  An error occured processing graphic `\ip@directpath\ip@lastelement'}}}
 
-\def\pstool@abort#1\pstool@endprocess{\pstool@error}
+\def\pstool@abort#1\pstool@endprocess{\pstool@error\@gobble}
 \let\pstool@endprocess\@firstofone
 
 % It is necessary while executing commands on the shell to write the exit status to a temporary file to test for failures in processing. (If all versions of |pdflatex| supported input pipes, things might be different.)
@@ -132,6 +132,9 @@
 
 \newcommand\pstool@alwaysprocess[3][]{%
   \inversepath*{#2}% calculate filename, path \& inverse path
+  \ifx\ip@directpath\@empty
+    \def\ip@directpath{./}%
+  \fi
   \pstool@process[#1]{#2}{#3}}
 
 \newcommand\pstool@neverprocess[3][]{%
@@ -143,7 +146,7 @@
   \inversepath*{#2}% calculate filename, path \& inverse path
   \ifx\ip@directpath\@empty
     \def\ip@directpath{./}%
-\fi
+  \fi
   \IfFileExists{#2.pdf}{%
     \pstool@datefiles
     \if@tempswa\expandafter\@firstoftwo
@@ -184,11 +187,11 @@
 
 \newcommand{\pstool@process}[3][]{%
   \pstool@write@processfile{#1}{#2}{#3}%
-  \pstool@exe{}{latex
+  \pstool@exe{./}{latex
       -shell-escape
       -output-format=dvi
       -output-directory="\ip@directpath"
-%      -interaction=batchmode
+      -interaction=batchmode
           "\pstool@jobname.tex"}%
   \pstool@exe{\ip@directpath}{%
     dvips "\pstool@jobname.dvi"}%
@@ -221,7 +224,7 @@
           \let\origdocument\document
           \def\document{\endgroup\endinput}}%
         \noexpand
-          \input{\ip@inversepath\jobname}%
+          \input{\jobname}%
       \fi
 %
 % Now the preamble of the process file: (restoring document's original meaning; empty \cmd\pagestyle\ removes the page number)
