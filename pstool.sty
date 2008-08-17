@@ -25,9 +25,8 @@
   \or
   \fi}
 
-\DeclareOptionX{cleanup}{%
-  \def\pstool@rm@files{#1}}
-\ExecuteOptionsX{cleanup={tex,dvi,ps,pdf,log,aux}}
+\DeclareOptionX{cleanup}{\def\pstool@rm@files{#1}}
+\ExecuteOptionsX{cleanup={.tex,.dvi,.ps,.pdf,.log,.aux,-blx.bib,.nav,.out,.snm,.toc}}
 
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
 \ExecuteOptionsX{suffix={-process}}
@@ -58,14 +57,11 @@
 }
 
 % Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
-\def\pstool@exe#1{%
-  \immediate\write18{%
-    cd "\ip@directpath"\pstool@cmdsep
-    \pstool@writestatus{#1}%
-  }%
-  \pstool@retrievestatus\@tempa
-  \ifnum\@tempa > 0
-    \PackageWarning{pstool}{Execution failed during process:^^J  #1^^J}%
+\def\pstool@exe#1#2{%
+  \pstool@writestatus{#1}{#2}%
+  \pstool@retrievestatus{#1}{\@tempa}%
+  \ifnum\@tempa > \z@
+    \PackageWarning{pstool}{Execution failed during process:^^J  #2^^J}%
     \expandafter\pstool@abort
   \fi}
 
@@ -77,32 +73,38 @@
 \let\pstool@endprocess\@firstofone
 
 % It is necessary while executing commands on the shell to write the exit status to a temporary file to test for failures in processing. (If all versions of |pdflatex| supported input pipes, things might be different.)
-\def\pstool@statusfile{status-deleteme.txt}
-\def\pstool@writestatus#1{%
-  \ifwindows
-    #1 \pstool@cmdsep call echo
-      \string^\@percentchar ERRORLEVEL\string^\@percentchar
-      > \pstool@statusfile
-  \else
-    #1 \pstool@cmdsep echo \detokenize{$?} > \pstool@statusfile
-  \fi
-}
-
-% Read the exit status from the temporary file and delete it.
-\def\pstool@retrievestatus#1{%
-  \pstool@touchstatus
-  \CatchFileEdef{#1}{\ip@directpath\pstool@statusfile}{}%
-  \pstool@rm{\pstool@statusfile}%
-}
-
-% This ensures the file is written to disk properly (allowing it to be read by \cmd\CatchFileEdef). Not necessary on Windows, whose file writing is evidently more crude/immediate.
-\def\pstool@touchstatus{%
+\def\pstool@writestatus#1#2{%
+  \immediate\write18{%
+    cd "#1" \pstool@cmdsep
+    #2 \pstool@cmdsep
+    \ifwindows
+       call echo
+         \string^\@percentchar ERRORLEVEL\string^\@percentchar
+    \else
+       echo \detokenize{$?}
+    \fi
+    > \pstool@statusfile}%
+% That's the execution; now we need to flush the write buffer to the status file. This ensures the file is written to disk properly (allowing it to be read by \cmd\CatchFileEdef). Not necessary on Windows, whose file writing is evidently more crude/immediate.
   \ifwindows\else
     \immediate\write18{%
-      cd "\ip@directpath"\pstool@cmdsep
-      touch \pstool@statusfile}%
-  \fi
-}
+      touch #1\pstool@statusfile}%
+  \fi}
+\def\pstool@statusfile{status-deleteme.txt}
+
+
+% Read the exit status from the temporary file and delete it.\\
+% |#1| is the path\\
+% |#2| is the command to record the status within.
+\def\pstool@retrievestatus#1#2{%
+  \CatchFileEdef{#2}{#1\pstool@statusfile}{}%
+  \pstool@rm{\pstool@statusfile}%
+  \ifx#2\pstool@statusfail
+    \PackageWarning{pstool}{%
+      Status of process unable to be determined:^^J  #1^^J%
+      Trying to proceed... }%
+    \def#2{0}%
+  \fi}
+\def\pstool@statusfail{\par }
 
 % \subsection{File age detection}
 % Use |ls| (or |dir|) to detect if the EPS is newer than the PDF:
@@ -116,7 +118,7 @@
       ls -t "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
     \fi
   }%
-  \pstool@retrievestatus\@tempa
+  \pstool@retrievestatus{\ip@directpath}{\@tempa}%
   \ifx\@tempa\pstool@filenames
     \@tempswatrue
   \else
@@ -139,6 +141,9 @@
 % the command is starred, or the PDF doesn't exist.
 \newcommand\pstool@maybeprocess[3][]{%
   \inversepath*{#2}% calculate filename, path \& inverse path
+  \ifx\ip@directpath\@empty
+    \def\ip@directpath{./}%
+\fi
   \IfFileExists{#2.pdf}{%
     \pstool@datefiles
     \if@tempswa\expandafter\@firstoftwo
@@ -179,14 +184,22 @@
 
 \newcommand{\pstool@process}[3][]{%
   \pstool@write@processfile{#1}{#2}{#3}%
-  \pstool@exe{latex -shell-escape -output-format=dvi
-      -interaction=batchmode "\pstool@jobname.tex"}%
-  \pstool@exe{dvips "\pstool@jobname.dvi"}%
+  \pstool@exe{}{latex
+      -shell-escape
+      -output-format=dvi
+      -output-directory="\ip@directpath"
+%      -interaction=batchmode
+          "\pstool@jobname.tex"}%
+  \pstool@exe{\ip@directpath}{%
+    dvips "\pstool@jobname.dvi"}%
   \if@pstool@pdfcrop@
-    \pstool@exe{ps2pdf "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
-    \pstool@exe{pdfcrop "\pstool@jobname.pdf" "\ip@lastelement.pdf"}%
+    \pstool@exe{\ip@directpath}{%
+      ps2pdf "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
+    \pstool@exe{\ip@directpath}{%
+      pdfcrop "\pstool@jobname.pdf" "\ip@lastelement.pdf"}%
   \else
-    \pstool@exe{ps2pdf "\pstool@jobname.ps" "\ip@lastelement.pdf"}%
+    \pstool@exe{\ip@directpath}{%
+      ps2pdf "\pstool@jobname.ps" "\ip@lastelement.pdf"}%
   \fi
   \pstool@endprocess{%
     \pstool@cleanup
@@ -194,7 +207,7 @@
 
 % The file that is written for processing is set up to read the preamble of the original document and set the graphic on an empty page (cropping to size is done either here with \pkg{preview} or later with \pkg{pdfcrop}).
 \def\pstool@write@processfile#1#2#3{%
-    \immediate\openout\pstool@out #2-process.tex\relax
+    \immediate\openout\pstool@out #2\pstool@suffix.tex\relax
     \immediate\write\pstool@out{%
       \noexpand\pdfoutput=0% force DVI mode if not already
 %
@@ -242,7 +255,7 @@
 
 \def\pstool@cleanup{%
   \@for\@ii:=\pstool@rm@files\do{%
-    \pstool@rm{\pstool@jobname.\@ii}%
+    \pstool@rm{\pstool@jobname\@ii}%
 }}
 
 % \section{User commands}

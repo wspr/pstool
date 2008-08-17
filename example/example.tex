@@ -3,15 +3,18 @@
 \usepackage{color}
 \color{red}
 \usepackage{psfrag}
-\usepackage[process=auto]{pstool}
+\usepackage[process=all]{pstool}
+\input macros.tex
 \begin{document}
 
+External macros: \a, \b, \c
+
 \pstool{trial}{%
-  \psfrag{[Mp]}{$M_p$!}%
+  \psfrag{[Mp]}{$M_\a$!}%
 }
 
-\pstool{trial/trial2}{%
-  \psfrag{[Mp]}{$Z_p$}%
+\pstool{subdir/trial2}{%
+  \psfrag{[Mp]}{$Z_\b$}%
 }
 
 \epsfig{trial3}
