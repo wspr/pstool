@@ -1,12 +1,13 @@
-\ProvidesPackage{pstool}[2008/08/08 v0.6
+\ProvidesPackage{pstool}[2008/08/22 v0.7
   Wrapper for processing PostScript/psfrag figures]
 
+% \section{Initialisations}
 % External packages
 \RequirePackage{%
   catchfile,color,ifpdf,ifplatform,
   inversepath,graphicx,suffix,xkeyval}
 
-% Initialisations
+% Allocations
 \newif\if@pstool@always@
 \newif\if@pstool@never@
 \newif\if@pstool@pdfcrop@
@@ -14,7 +15,11 @@
 \newif\if@pstool@nofig@
 \newwrite\pstool@out
 
-% Package options
+% These are cute
+\providecommand\OnlyIfFileExists[2]{\IfFileExists{#1}{#2}{}}
+\providecommand\NotIfFileExists[2]{\IfFileExists{#1}{}{#2}}
+
+% \subsection{Package options}
 \DeclareOptionX{pdfcrop}{\@pstool@pdfcrop@true}
 
 \define@choicekey*{pstool.sty}{process}[\@tempa\@tempb]{all,none,auto}{%
@@ -23,18 +28,20 @@
   \or
     \@pstool@never@true
   \or
-  \fi}
+  \fi
+}
 
-\define@choicekey*{pstool.sty}{mode}[\@tempa\@tempb]{errorstop,nonstop,batch}{%
-  \edef\pstool@mode{\@tempa mode}%
+\define@choicekey*{pstool.sty}{mode}
+  [\@tempa\@tempb]{errorstop,nonstop,batch}{%
+    \edef\pstool@mode{\@tempa mode}%
 }
 \ExecuteOptionsX{mode=batch}
 
 \DeclareOptionX{cleanup}{\def\pstool@rm@files{#1}}
-\ExecuteOptionsX{cleanup={.tex,.dvi,.ps,.pdf,.log,.aux,-blx.bib,.nav,.out,.snm,.toc,.mp}}
+\ExecuteOptionsX{cleanup={.tex, .dvi, .ps, .pdf, .log, .aux}}
 
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
-\ExecuteOptionsX{suffix={-process}}
+\ExecuteOptionsX{suffix={-pstool}}
 
 \ifshellescape\else
   \ExecuteOptionsX{process=none}
@@ -46,9 +53,12 @@
 
 \ProcessOptionsX
 
-% These are cute:
-\providecommand\OnlyIfFileExists[2]{\IfFileExists{#1}{#2}{}}
-\providecommand\NotIfFileExists[2]{\IfFileExists{#1}{}{#2}}
+% \section{Macros}
+
+% Used to echo information to the console output.
+% Can't use \typeout because it's asynchronous with
+% any |\immediate\write18| processes (for some reason).
+\def\pstool@echo#1{\immediate\write18{echo "#1"}}
 
 % Command line abstractions between platforms:
 \edef\pstool@cmdsep{\ifwindows\string&\else\string;\fi\space}
@@ -62,11 +72,12 @@
 }
 
 % Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
-\def\pstool@exe#1#2{%
-  \pstool@writestatus{#1}{#2}%
-  \pstool@retrievestatus{#1}%
+\newcommand\pstool@exe[3]{%
+  \pstool@echo{^^J === pstool: #1 ===}%
+  \pstool@writestatus{#2}{#3}%
+  \pstool@retrievestatus{#2}%
   \ifnum\pstool@status > \z@
-    \PackageWarning{pstool}{Execution failed during process:^^J  #2^^J}%
+    \PackageWarning{pstool}{Execution failed during process:^^J  #3^^J}%
     \expandafter\pstool@abort
   \fi}
 
@@ -130,8 +141,8 @@
   \fi
 }
 
-% This is used later as a wrapper for \cs{inversepath*}. Long story short, always need a relative path to a filename even if it's in the same directory.
-\def\pstool@inverse#1{%
+% A wrapper for \cs{inversepath*}. Long story short, always need a relative path to a filename even if it's in the same directory.
+\def\pstool@getpaths#1{%
   \edef\@tempa{\unexpanded{\inversepath*}{#1}}%
   \@tempa% calculate filename, path \& inverse path
   \ifx\ip@directpath\@empty
@@ -143,7 +154,7 @@
 % User input is \cmd\pstool\ (with optional |*| or |!| suffix) which turns into one of the following three macros depending on the mode.
 
 \newcommand\pstool@alwaysprocess[3][]{%
-  \pstool@inverse{#2}%
+  \pstool@getpaths{#2}%
   \pstool@process{#1}{#2}{#3}}
 
 \newcommand\pstool@neverprocess[3][]{%
@@ -152,9 +163,9 @@
 % For regular operation, which processes the figure only if
 % the command is starred, or the PDF doesn't exist.
 \newcommand\pstool@maybeprocess[3][]{%
-  \pstool@inverse{#2}%
+  \pstool@getpaths{#2}%
   \IfFileExists{#2.pdf}{%
-    \pstool@IfnewerEPS{% needs info from |\pstool@inverse|
+    \pstool@IfnewerEPS{% needs info from |\pstool@getpaths|
       \pstool@process{#1}{#2}{#3}%
     }{%
       \includegraphics[#1]{#2}%
@@ -163,7 +174,7 @@
     \pstool@process{#1}{#2}{#3}%
   }}
 
-% \subsection{User commands}
+% \section{User commands}
 %  Finally, define \cmd\pstool\ as appropriate for the mode:
 \ifpdf
   \if@pstool@always@
@@ -190,29 +201,26 @@
 % \cmd\ip@lastelement\ is the filename of the figure stripped of its path (if any)
 \def\pstool@jobname{\ip@lastelement\pstool@suffix}
 
-\def\pstool@echo#1{\immediate\write18{echo "#1"}}
-
+% And this is the main macro.
 \newcommand\pstool@process[3]{%
-  \pstool@echo{^^J^^J=== pstool: auxiliary process: \ip@lastelement\space ===}%
+  \pstool@echo{^^J}%
   \pstool@write@processfile{#1}{#2}{#3}%
-  \pstool@exe{./}{latex
+  \pstool@exe{auxiliary process: \ip@lastelement\space}
+    {./}{latex
       -shell-escape
       -output-format=dvi
       -output-directory="\ip@directpath"
       -interaction=\pstool@mode\space
           "\pstool@jobname.tex"}%
-  \pstool@echo{^^J=== pstool: dvips ===}%
-  \pstool@exe{\ip@directpath}{%
+  \pstool@exe{dvips}{\ip@directpath}{%
     dvips "\pstool@jobname.dvi"}%
-  \pstool@echo{^^J=== pstool: ps2pdf ===}%
   \if@pstool@pdfcrop@
-    \pstool@exe{\ip@directpath}{%
+    \pstool@exe{ps2pdf}{\ip@directpath}{%
       ps2pdf "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
-    \pstool@echo{^^J=== pstool: pdfcrop ===}%
-    \pstool@exe{\ip@directpath}{%
+    \pstool@exe{pdfcrop}{\ip@directpath}{%
       pdfcrop "\pstool@jobname.pdf" "\ip@lastelement.pdf"}%
   \else
-    \pstool@exe{\ip@directpath}{%
+    \pstool@exe{ps2pdf}{\ip@directpath}{%
       ps2pdf "\pstool@jobname.ps" "\ip@lastelement.pdf"}%
   \fi
   \pstool@echo{^^J=== pstool: end processing ===^^J}%
@@ -292,10 +300,11 @@
 }
 
 % for EPS figures with psfrag:
-\newcommand\psfragfig[2][]{\pstool@psfragfig{#1}{#2}{\pstool}}
-\WithSuffix\newcommand\psfragfig*[2][]{\pstool@psfragfig{#1}{#2}{\pstool*}}
-\WithSuffix\newcommand\psfragfig![2][]{\pstool@psfragfig{#1}{#2}{\pstool!}}
+\newcommand\psfragfig[2][]{\pstool@psfragfig{#1}{#2}{}}
+\WithSuffix\newcommand\psfragfig*[2][]{\pstool@psfragfig{#1}{#2}{*}}
+\WithSuffix\newcommand\psfragfig![2][]{\pstool@psfragfig{#1}{#2}{!}}
 
+% Parse optional \<input definitions>
 \newcommand\pstool@psfragfig[3]{%
   \@ifnextchar\bgroup{%
     \pstool@@psfragfig{#1}{#2}{#3}%
@@ -304,6 +313,7 @@
   }%
 }
 
+% Search for both \<filename> and \<filename>|-psfrag| inputs.
 \newcommand\pstool@@psfragfig[4]{%
   \IfFileExists{#2-psfrag.eps}{%
     \def\pstool@eps{#2-psfrag}%
@@ -321,30 +331,41 @@
       }%
     }%
   }%
-  #3[#1]{\pstool@eps}{%
+  \pstool#3[#1]{\pstool@eps}{%
     \InputIfFileExists{#2-psfrag.tex}{%
       \OnlyIfFileExists{#2.tex}{%
         \PackageWarning{pstool}{%
           File "#2.tex" exists that may contain macros for "\pstool@eps.eps"^^J%
-          But file "#2-psfrag.tex" is being used instead.}%
+          But file "#2-psfrag.tex" is being used instead.%
+        }%
       }%
     }{%
       \InputIfFileExists{#2.tex}{}{}%
     }%
-    #4}%
+    #4%
+  }%
 }
 
 % for Matlab's laprint:
-\newcommand\laprintfig[2][]{\pstool@laprintfig{\pstool}[#1]{#2}}
-\WithSuffix\newcommand\laprintfig*[2][]{\pstool@laprintfig{\pstool*}[#1]{#2}}
-\WithSuffix\newcommand\laprintfig![2][]{\pstool@laprintfig{\pstool!}[#1]{#2}}
+\newcommand\laprintfig[2][]{\pstool@laprintfig{#1}{#2}{}}
+\WithSuffix\newcommand\laprintfig*[2][]{\pstool@laprintfig{#1}{#2}{*}}
+\WithSuffix\newcommand\laprintfig![2][]{\pstool@laprintfig{#1}{#2}{!}}
 
-\def\pstool@laprintfig#1[#2]#3{%
+% Parse optional \<input definitions>
+\newcommand\pstool@laprintfig[3]{%
+  \@ifnextchar\bgroup{%
+    \pstool@@laprintfig{#1}{#2}{#3}%
+  }{%
+    \pstool@@laprintfig{#1}{#2}{#3}{}%
+  }%
+}
+
+\newcommand\pstool@@laprintfig[4]{%
   \begingroup
     \@pstool@nofig@true
     \renewcommand\resizebox[3]{##3}%
-    \renewcommand\includegraphics[2][]{#1[#2]{##2}{}}%
-    \input{#3}%
+    \renewcommand\includegraphics[2][]{\pstool#3[#1]{##2}{}}%
+    \input{#2}%
   \endgroup
 }
 

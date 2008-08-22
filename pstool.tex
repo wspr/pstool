@@ -2,7 +2,7 @@
 \begin{filecontents*}{README.txt}
 __________________
 The pstool package
-v0.6
+v0.7
 
 A package like "pst-pdf" for processing PostScript graphics 
 within pdfLaTeX documets. The difference with this package 
@@ -21,15 +21,16 @@ Copyright 2008
 \end{filecontents*}
 
 \begin{filecontents*}{pstool.sty}
-\ProvidesPackage{pstool}[2008/08/08 v0.6
+\ProvidesPackage{pstool}[2008/08/22 v0.7
   Wrapper for processing PostScript/psfrag figures]
 
+% \section{Initialisations}
 % External packages
 \RequirePackage{%
   catchfile,color,ifpdf,ifplatform,
   inversepath,graphicx,suffix,xkeyval}
 
-% Initialisations
+% Allocations
 \newif\if@pstool@always@
 \newif\if@pstool@never@
 \newif\if@pstool@pdfcrop@
@@ -37,41 +38,50 @@ Copyright 2008
 \newif\if@pstool@nofig@
 \newwrite\pstool@out
 
-% Package options
+% These are cute
+\providecommand\OnlyIfFileExists[2]{\IfFileExists{#1}{#2}{}}
+\providecommand\NotIfFileExists[2]{\IfFileExists{#1}{}{#2}}
+
+% \subsection{Package options}
 \DeclareOptionX{pdfcrop}{\@pstool@pdfcrop@true}
 
-\define@choicekey*{pstool.sty}{process}[\@tempa\@tempb]{all,none,auto}{% 
-  \ifcase\@tempb\relax 
+\define@choicekey*{pstool.sty}{process}[\@tempa\@tempb]{all,none,auto}{%
+  \ifcase\@tempb\relax
     \@pstool@always@true
-  \or 
-    \@pstool@never@true 
   \or
-  \fi} 
+    \@pstool@never@true
+  \or
+  \fi
+}
 
-\define@choicekey*{pstool.sty}{mode}[\@tempa\@tempb]{errorstop,nonstop,batch}{% 
-  \edef\pstool@mode{\@tempa mode}%
+\define@choicekey*{pstool.sty}{mode}
+  [\@tempa\@tempb]{errorstop,nonstop,batch}{%
+    \edef\pstool@mode{\@tempa mode}%
 }
 \ExecuteOptionsX{mode=batch}
 
 \DeclareOptionX{cleanup}{\def\pstool@rm@files{#1}}
-\ExecuteOptionsX{cleanup={.tex,.dvi,.ps,.pdf,.log,.aux,-blx.bib,.nav,.out,.snm,.toc,.mp}}
+\ExecuteOptionsX{cleanup={.tex, .dvi, .ps, .pdf, .log, .aux}}
 
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
-\ExecuteOptionsX{suffix={-process}}
+\ExecuteOptionsX{suffix={-pstool}}
 
 \ifshellescape\else
   \ExecuteOptionsX{process=none}
   \PackageWarning{pstool}{^^J\space\space%
-    Package option [process=none] activated^^J\space\space 
+    Package option [process=none] activated^^J\space\space
     because -shell-escape is not enabled.^^J%
     This warning occurred}
 \fi
 
 \ProcessOptionsX
 
-% These are cute:
-\providecommand\OnlyIfFileExists[2]{\IfFileExists{#1}{#2}{}}
-\providecommand\NotIfFileExists[2]{\IfFileExists{#1}{}{#2}}
+% \section{Macros}
+
+% Used to echo information to the console output.
+% Can't use \typeout because it's asynchronous with
+% any |\immediate\write18| processes (for some reason).
+\def\pstool@echo#1{\immediate\write18{echo "#1"}}
 
 % Command line abstractions between platforms:
 \edef\pstool@cmdsep{\ifwindows\string&\else\string;\fi\space}
@@ -85,16 +95,17 @@ Copyright 2008
 }
 
 % Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
-\def\pstool@exe#1#2{%
-  \pstool@writestatus{#1}{#2}%
-  \pstool@retrievestatus{#1}%
+\newcommand\pstool@exe[3]{%
+  \pstool@echo{^^J === pstool: #1 ===}%
+  \pstool@writestatus{#2}{#3}%
+  \pstool@retrievestatus{#2}%
   \ifnum\pstool@status > \z@
-    \PackageWarning{pstool}{Execution failed during process:^^J  #2^^J}%
+    \PackageWarning{pstool}{Execution failed during process:^^J  #3^^J}%
     \expandafter\pstool@abort
   \fi}
 
 % Edit this definition to print something else when graphic processing fails.
-\def\pstool@error{\fbox{\parbox{\linewidth}{\color{red}\ttfamily\scshape 
+\def\pstool@error{\fbox{\parbox{\linewidth}{\color{red}\ttfamily\scshape
   An error occured processing graphic \upshape`\ip@directpath\ip@lastelement'}}}
 
 \def\pstool@abort#1\pstool@endprocess{\pstool@error\@gobble}
@@ -102,17 +113,17 @@ Copyright 2008
 
 % It is necessary while executing commands on the shell to write the exit status to a temporary file to test for failures in processing. (If all versions of |pdflatex| supported input pipes, things might be different.)
 \def\pstool@writestatus#1#2{%
-  \immediate\write18{% 
+  \immediate\write18{%
     cd "#1" \pstool@cmdsep
     #2 \pstool@cmdsep
     \ifwindows
-       call echo 
-         \string^\@percentchar ERRORLEVEL\string^\@percentchar 
+       call echo
+         \string^\@percentchar ERRORLEVEL\string^\@percentchar
     \else
        echo \detokenize{$?}
     \fi
     > \pstool@statusfile}%
-% That's the execution; now we need to flush the write buffer to the status file. This ensures the file is written to disk properly (allowing it to be read by \cmd\CatchFileEdef). Not necessary on Windows, whose file writing is evidently more crude/immediate.    
+% That's the execution; now we need to flush the write buffer to the status file. This ensures the file is written to disk properly (allowing it to be read by \cmd\CatchFileEdef). Not necessary on Windows, whose file writing is evidently more crude/immediate.
   \ifwindows\else
     \immediate\write18{%
       touch #1\pstool@statusfile}%
@@ -138,7 +149,7 @@ Copyright 2008
 \def\pstool@IfnewerEPS{%
   \edef\pstool@filenames{\ip@lastelement.eps\space \ip@lastelement.pdf\space}%
   \immediate\write18{%
-    cd "\ip@directpath"\pstool@cmdsep     
+    cd "\ip@directpath"\pstool@cmdsep
     \ifwindows
       dir /T:W /B /O-D "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
     \else
@@ -153,8 +164,8 @@ Copyright 2008
   \fi
 }
 
-% This is used later as a wrapper for \cs{inversepath*}. Long story short, always need a relative path to a filename even if it's in the same directory.
-\def\pstool@inverse#1{%
+% A wrapper for \cs{inversepath*}. Long story short, always need a relative path to a filename even if it's in the same directory.
+\def\pstool@getpaths#1{%
   \edef\@tempa{\unexpanded{\inversepath*}{#1}}%
   \@tempa% calculate filename, path \& inverse path
   \ifx\ip@directpath\@empty
@@ -166,7 +177,7 @@ Copyright 2008
 % User input is \cmd\pstool\ (with optional |*| or |!| suffix) which turns into one of the following three macros depending on the mode.
 
 \newcommand\pstool@alwaysprocess[3][]{%
-  \pstool@inverse{#2}%
+  \pstool@getpaths{#2}%
   \pstool@process{#1}{#2}{#3}}
 
 \newcommand\pstool@neverprocess[3][]{%
@@ -175,9 +186,9 @@ Copyright 2008
 % For regular operation, which processes the figure only if
 % the command is starred, or the PDF doesn't exist.
 \newcommand\pstool@maybeprocess[3][]{%
-  \pstool@inverse{#2}%
+  \pstool@getpaths{#2}%
   \IfFileExists{#2.pdf}{%
-    \pstool@IfnewerEPS{% needs info from |\pstool@inverse|
+    \pstool@IfnewerEPS{% needs info from |\pstool@getpaths|
       \pstool@process{#1}{#2}{#3}%
     }{%
       \includegraphics[#1]{#2}%
@@ -186,7 +197,7 @@ Copyright 2008
     \pstool@process{#1}{#2}{#3}%
   }}
 
-% \subsection{User commands}
+% \section{User commands}
 %  Finally, define \cmd\pstool\ as appropriate for the mode:
 \ifpdf
   \if@pstool@always@
@@ -213,29 +224,26 @@ Copyright 2008
 % \cmd\ip@lastelement\ is the filename of the figure stripped of its path (if any)
 \def\pstool@jobname{\ip@lastelement\pstool@suffix}
 
-\def\pstool@echo#1{\immediate\write18{echo "#1"}}
-
+% And this is the main macro.
 \newcommand\pstool@process[3]{%
-  \pstool@echo{^^J^^J=== pstool: auxiliary process: \ip@lastelement\space ===}%
+  \pstool@echo{^^J}%
   \pstool@write@processfile{#1}{#2}{#3}%
-  \pstool@exe{./}{latex 
-      -shell-escape 
-      -output-format=dvi 
+  \pstool@exe{auxiliary process: \ip@lastelement\space}
+    {./}{latex
+      -shell-escape
+      -output-format=dvi
       -output-directory="\ip@directpath"
-      -interaction=\pstool@mode\space 
+      -interaction=\pstool@mode\space
           "\pstool@jobname.tex"}%
-  \pstool@echo{^^J=== pstool: dvips ===}%
-  \pstool@exe{\ip@directpath}{%
+  \pstool@exe{dvips}{\ip@directpath}{%
     dvips "\pstool@jobname.dvi"}%
-  \pstool@echo{^^J=== pstool: ps2pdf ===}%
   \if@pstool@pdfcrop@
-    \pstool@exe{\ip@directpath}{%
+    \pstool@exe{ps2pdf}{\ip@directpath}{%
       ps2pdf "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
-    \pstool@echo{^^J=== pstool: pdfcrop ===}%
-    \pstool@exe{\ip@directpath}{%
+    \pstool@exe{pdfcrop}{\ip@directpath}{%
       pdfcrop "\pstool@jobname.pdf" "\ip@lastelement.pdf"}%
   \else
-    \pstool@exe{\ip@directpath}{%
+    \pstool@exe{ps2pdf}{\ip@directpath}{%
       ps2pdf "\pstool@jobname.ps" "\ip@lastelement.pdf"}%
   \fi
   \pstool@echo{^^J=== pstool: end processing ===^^J}%
@@ -285,7 +293,7 @@ Copyright 2008
       \fi
       \if@pstool@pdfcrop@\else
         \noexpand\end{preview}%
-      \fi        
+      \fi
       \unexpanded{%
         \vfill\end{document}}%
       }%
@@ -315,10 +323,11 @@ Copyright 2008
 }
 
 % for EPS figures with psfrag:
-\newcommand\psfragfig[2][]{\pstool@psfragfig{#1}{#2}{\pstool}}
-\WithSuffix\newcommand\psfragfig*[2][]{\pstool@psfragfig{#1}{#2}{\pstool*}}
-\WithSuffix\newcommand\psfragfig![2][]{\pstool@psfragfig{#1}{#2}{\pstool!}}
+\newcommand\psfragfig[2][]{\pstool@psfragfig{#1}{#2}{}}
+\WithSuffix\newcommand\psfragfig*[2][]{\pstool@psfragfig{#1}{#2}{*}}
+\WithSuffix\newcommand\psfragfig![2][]{\pstool@psfragfig{#1}{#2}{!}}
 
+% Parse optional \<input definitions>
 \newcommand\pstool@psfragfig[3]{%
   \@ifnextchar\bgroup{%
     \pstool@@psfragfig{#1}{#2}{#3}%
@@ -327,6 +336,7 @@ Copyright 2008
   }%
 }
 
+% Search for both \<filename> and \<filename>|-psfrag| inputs.
 \newcommand\pstool@@psfragfig[4]{%
   \IfFileExists{#2-psfrag.eps}{%
     \def\pstool@eps{#2-psfrag}%
@@ -344,30 +354,41 @@ Copyright 2008
       }%
     }%
   }%
-  #3[#1]{\pstool@eps}{%
+  \pstool#3[#1]{\pstool@eps}{%
     \InputIfFileExists{#2-psfrag.tex}{%
       \OnlyIfFileExists{#2.tex}{%
         \PackageWarning{pstool}{%
           File "#2.tex" exists that may contain macros for "\pstool@eps.eps"^^J%
-          But file "#2-psfrag.tex" is being used instead.}%
+          But file "#2-psfrag.tex" is being used instead.%
+        }%
       }%
     }{%
       \InputIfFileExists{#2.tex}{}{}%
     }%
-    #4}%
+    #4%
+  }%
 }
 
 % for Matlab's laprint:
-\newcommand\laprintfig[2][]{\pstool@laprintfig{\pstool}[#1]{#2}}
-\WithSuffix\newcommand\laprintfig*[2][]{\pstool@laprintfig{\pstool*}[#1]{#2}}
-\WithSuffix\newcommand\laprintfig![2][]{\pstool@laprintfig{\pstool!}[#1]{#2}}
+\newcommand\laprintfig[2][]{\pstool@laprintfig{#1}{#2}{}}
+\WithSuffix\newcommand\laprintfig*[2][]{\pstool@laprintfig{#1}{#2}{*}}
+\WithSuffix\newcommand\laprintfig![2][]{\pstool@laprintfig{#1}{#2}{!}}
 
-\def\pstool@laprintfig#1[#2]#3{%
+% Parse optional \<input definitions>
+\newcommand\pstool@laprintfig[3]{%
+  \@ifnextchar\bgroup{%
+    \pstool@@laprintfig{#1}{#2}{#3}%
+  }{%
+    \pstool@@laprintfig{#1}{#2}{#3}{}%
+  }%
+}
+
+\newcommand\pstool@@laprintfig[4]{%
   \begingroup
     \@pstool@nofig@true
     \renewcommand\resizebox[3]{##3}%
-    \renewcommand\includegraphics[2][]{#1[#2]{##2}{}}%
-    \input{#3}%
+    \renewcommand\includegraphics[2][]{\pstool#3[#1]{##2}{}}%
+    \input{#2}%
   \endgroup
 }
 
@@ -386,17 +407,16 @@ Copyright 2008
 
 \begin{filecontents*}{pstool.ins}
 %&latex
-\newcommand\pstoolCompile{N}
+\def\pstoolCompile{N}
 \input pstool.tex
 \csname@@end\endcsname
 \end{filecontents*}
 
-
-\immediate\write18{makeindex -r \jobname}
-\immediate\write18{makeindex -r -s gmglo.ist -o \jobname.gls \jobname.glo}
-
 \makeatletter
 \documentclass{article}
+
+\usepackage[rm,medium]{titlesec}
+
 \usepackage{xcolor}
 \usepackage[colorlinks,linktocpage]{hyperref}
 
@@ -406,16 +426,17 @@ Copyright 2008
 \stanzaskip=\bigskipamount 
 \CodeSpacesGrey
 
-\usepackage{tocloft}
-\def\cftpartfont{}
-\def\cftsecfont{}
+\usepackage{tocloft,varwidth}
+\setcounter{tocdepth}{1}
+\def\tocwidthA{0.45}
+\def\tocwidthB{0.45}
+\def\cftpartfont{\scshape}
+\def\cftsecfont{\small}
 \cftbeforesecskip=0pt
 \def\cftpartleader{}
 \def\cftpartafterpnum{\cftparfillskip}
 \def\cftsecleader{}
 \def\cftsecafterpnum{\cftparfillskip}
-\def\cftsubsecleader{}
-\def\cftsubsecafterpnum{\cftparfillskip}
 
 \let\pkg\textsf
 \def\pkgopt#1{\texttt{[#1]}}
@@ -436,6 +457,7 @@ Copyright 2008
 
 \GetFileInfo{pstool.sty}
 \begin{document}
+{\addtocontents{toc}{\protect\begin{varwidth}[t]{\tocwidthA\linewidth}}}
 
 \title{The \pkg{pstool} package}
 \author{
@@ -473,21 +495,15 @@ By default \cmd\pstool\ can be used in the following modes:
 \item[\cs{pstool!}] Never process this figure.
 \end{description}
 
-The package accepts options to override the above: 
-\begin{description}
-\item[\pkgopt{process=auto}] This is the default as described above;
-\item[\pkgopt{process=all}] All \cmd\pstool\ graphics are processed regardless of suffix; and,
-\item[\pkgopt{process=none}] No \cmd\pstool\ graphics are processed.%
-\footnote{If \pkg{pstool} is loaded in a \LaTeX\ document in \DVI\ mode, this is the option that is used since no external processing is required for these graphics.}
-\end{description}
-
-It is useful to define higher-level commands with \cmd\pstool\ for including specific types of \EPS\ graphics that take advantage of \pkg{psfrag}. As an example, this package defines the following commands (some of which use internal features of \pkg{pstool}. These commands all support the |*| or |!| suffices.
+It is useful to define higher-level commands with \cmd\pstool\ for including specific types of \EPS\ graphics that take advantage of \pkg{psfrag}. As an example, this package defines the following commands (some of which use internal features of \pkg{pstool}. These commands all support the |*| or |!| suffixes.
 \begin{description}
 \item[{\cmd\epsfig\arg[opts]\arg{filename}}] 
 Insert a plain \EPS\ figure. It is more convenient than using, for example, the \pkg{epstopdf} package since it will regenerate the \PDF\ only if the \EPS\ file changes.
 
 \item[{\cmd\psfragfig\arg[opts]\arg{filename}}] 
-This is the catch-all macro to support a wide range of graphics naming schemes. It insert an \EPS\ file named either \<filename>|.eps| or \<filename>|-psfrag.eps| (in order of preference), and uses \pkg{psfrag} definitions contained within either the file \<filename>|.tex| or \<filename>|-psfrag.tex|. This command can be used to insert figure produced by the \textsc{Mathematica} package \pkg{MathPSfrag} or the \textsc{Matlab} package \pkg{matlabfrag}. (\cmd\psfragfig\ also accepts an optional braced argument as shown next.)
+This is the catch-all macro to support a wide range of graphics naming schemes. It insert an \EPS\ file named either \<filename>|.eps| or \<filename>|-psfrag.eps| (in order of preference), and uses \pkg{psfrag} definitions contained within either the file \<filename>|.tex| or \<filename>|-psfrag.tex|. 
+
+This command can be used to insert figure produced by the \textsc{Mathematica} package \pkg{MathPSfrag} or the \textsc{Matlab} package \pkg{matlabfrag}. \cmd\psfragfig\ also accepts an optional braced argument as shown next.
 
 \item[{\cmd\psfragfig\arg[opts]\arg{filename}\arg{input definitions}}] 
 As above, but inserts the arbitrary code \<input definitions>, which will usually be used for defining new or overriding existing \pkg{psfrag} commands.
@@ -499,22 +515,31 @@ Insert figures that have been produced with \textsc{Matlab}'s \pkg{laprint} pack
 
 \section{Package options}
 
+\subsection{Forcing/disabling graphics processing}
+
+While the suffixes |*| and |!| can be used to force or disable (respectively) the processing of each individual graphic, sometimes we want to do this on a global level. The following package options  override \emph{all} \cmd\pstool\ (and related) macros: 
+\begin{description}
+\item[\pkgopt{process=auto}] This is the default mode as described in the previous section, in which graphics are only (re-)processed if the \EPS\ file is newer or the \PDF\ file does not exist;
+\item[\pkgopt{process=all}] All \cmd\pstool\ graphics are processed; and,
+\item[\pkgopt{process=none}] No \cmd\pstool\ graphics are processed.\footnote{If \pkg{pstool} is loaded in a \LaTeX\ document in \DVI\ mode, this is the option that is used since no external processing is required for these graphics.}
+\end{description}
+
 \subsection{Cropping graphics}
-Graphics are cropped to the appropriate size with the \pkg{preview} package. Sometimes, however, this will not be good enough when an inserted label protrudes from the natural bounding box of the figure. A good way to solve this problem is to use the \pkg{pdfcrop} program (requires a Perl installation under Windows). This can be activated in \pkg{pstool} with the \pkgopt{pdfcrop} package option.
+Graphics are cropped to the appropriate size with the \pkg{preview} package. Sometimes, however, this will not be sufficient, such as when an inserted label protrudes from the natural bounding box of the figure, or when the original bounding box of the figure is wrong. A good way to solve this problem is to use the \pkg{pdfcrop} program (requires a Perl installation under Windows). This can be activated in \pkg{pstool} with the \pkgopt{pdfcrop} package option.
 
 \subsection{Temporary files \& cleanup}
-Each figure that is processed spawns an auxiliary \LaTeX\ compilation through \DVI$\to$\PS$\to$\PDF. This process is named after the name of the figure with a suffix; the default is \pkgopt{suffix=\{-process\}}. All of these suffixed files are ``temporary'' in that they may be deleted once they are no longer needed.
+Each figure that is processed spawns an auxiliary \LaTeX\ compilation through \DVI$\to$\PS$\to$\PDF. This process is named after the name of the figure with a suffix; the default is \pkgopt{suffix=\{-pstool\}}. All of these suffixed files are ``temporary'' in that they may be deleted once they are no longer needed.
 
-As an example, if the figure is called |ex.eps|, the files that are created are |ex-process.tex|, |ex-process.dvi|, \dots. The \pkgopt{cleanup} package option declares via a list of extensions which temporary files are to be deleted after processing.
+As an example, if the figure is called |ex.eps|, the files that are created are |ex-pstool.tex|, |ex-pstool.dvi|, \dots. The \pkgopt{cleanup} package option declares via a list of filename suffixes which temporary files are to be deleted after processing.
 
-The default is \pkgopt{cleanup=\{tex,dvi,ps,pdf,log,aux\}}. To delete none of the temporary files, choose \pkgopt{cleanup=\{\}} (useful for debugging).
+The default is \pkgopt{cleanup=\{.tex,\,.dvi,\,.ps,\,.pdf,\,.log,\,.aux\}}. To delete none of the temporary files, choose \pkgopt{cleanup=\{\}} (useful for debugging).
 
 \subsection{Interaction mode of the auxiliary processes}
 Each graphic echoes the output of its auxiliary process to the console window; unless you are trying to debug errors there is little interest in seeing this information. The behaviour of these auxiliary processes are governed globally by the \pkgopt{mode} package option, which takes the following parameters:
 \begin{description}
-\item[\pkgopt{mode=batch},] which hides almost all of the \LaTeX\ output (\emph{default});
-\item[\pkgopt{mode=nonstop},] which echoes all \LaTeX\ output but continues right past any errors; and 
-\item[\pkgopt{mode=errorstop},] which will prompt for user input when errors in the source are encountered.
+\item[\pkgopt{mode=batch}] hide almost all of the \LaTeX\ output (\emph{default});
+\item[\pkgopt{mode=nonstop}] echo all \LaTeX\ output but continues right past any errors; and 
+\item[\pkgopt{mode=errorstop}] prompt for user input when errors in the source are encountered.
 \end{description}
 These three package options correspond to the \LaTeX\ command line options \texttt{-interaction=batchmode}, \texttt{=nonstopmode}, and \texttt{=errorstopmode}, respectively.
 
@@ -524,32 +549,39 @@ At present, \pkg{pstool} scans the preamble of the main document by redefining |
 {\centering|\EndPreamble|\par}\noindent
 where-ever you'd like the preamble in the auxiliary processing to end. This is also handy to bypass anything in the preamble that will never be required for the figures but which will slow down or otherwise conflict with the auxiliary processing.
 
-\section{A note on paths}
+\section{A note on file paths}
 
 \pkg{pstool} does its best to ensure that you can put image files where-ever you like and the auxiliary processing will still function correctly. In order to ensure this,  the external |pdflatex| compilation uses the |-output-directory| feature of \pdfTeX. This command line option is definitely supported on all platforms in TeX~Live~2008 and MiKTeX~2.7, but earlier distributions may not be supported.
 
-One problem that \pkg{pstool} does not (currently) solve on its own is the inclusion of images that do not exist in subdirectories of the main document. For example, |\pstool{../Figures/myfig}| will not process by default because \pdfTeX\ usually does not have permission to write into folders that are higher in the heirarchy than the main document. This can be worked around presently in two different ways:
+One problem that \pkg{pstool} does not (currently) solve on its own is the inclusion of images that do not exist in subdirectories of the main document. For example, |\pstool{../Figures/myfig}| will not process by default because \pdfTeX\ usually does not have permission to write into folders that are higher in the heirarchy than the main document. This can be worked around presently in two different ways: (although maybe only for Mac~OS~X and Linux)
 \begin{enumerate}
-\item Give |pdflatex| permission to write anywhere with the following incantation: |openout_any=a pdflatex ...| (probably only works for Mac~OS~X and Linux);
+\item Give |pdflatex| permission to write anywhere with the command:\\
+|openout_any=a pdflatex ...|
 \item Create a symbolic link in the working directory to a point higher in the path: |ln -s ../../PhD ./PhD|, for example, and then refer to the graphics through this symbolic link.
 \end{enumerate}
-I hope to directly solve this problem in the future by using a caching folder for the auxiliary processing.
+I hope to directly solve this problem in the future by using a caching folder for the auxiliary processing in such cases.
 
 
-\section{Todo} 
+\section{To-do list for future versions}
+Further development on this package will be driven by my needs and the wishes of people who make their needs known to me. Here're a few ideas I haven't had time to implement. 
 \begin{enumerate}
-\item Test \cmd\laprint, \cmd\psfragfig, \cmd\matlabfig, \cmd\mathfig, 
-       especially with figures in a relative path.
-\item Use a `caching' method to (a) test for changes in psfrag commands, (b) get uncle image inclusion working.
+\item Use a `caching' method to 
+  \begin{enumerate}
+  \item test for changes within in-document \<input definition> text,
+  \item get uncle image inclusion working.
+  \end{enumerate}
 \item Generalise ``process if older'' code for multiple files.
-\item Support optional \<input definitions> for all user commands??
 \item Direct support for \cmd\includegraphics\ with \EPS\ files.
-\item (Maybe) support \pkg{epstool} for cropping the graphics.
 \item More flexible usage (support things like \cs{begin{postscript}} in \pkg{pst-pdf}).
 \item \pkg{mylatex} integration, which would definitively solve the whole preamble problem.
 \end{enumerate}
 
+{\addtocontents{toc}{\protect\end{varwidth}\protect\hfill}}
+{\addtocontents{toc}{\protect\begin{varwidth}[t]{\tocwidthB\linewidth}}}
+\clearpage
 \part{Implementation}
 \parindent=0pt
 \DocInput{pstool.sty}
+
+{\addtocontents{toc}{\protect\end{varwidth}}}
 \end{document}
