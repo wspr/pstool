@@ -1,4 +1,4 @@
-\ProvidesPackage{pstool}[2008/08/08 v0.5
+\ProvidesPackage{pstool}[2008/08/08 v0.6
   Wrapper for processing PostScript/psfrag figures]
 
 % External packages
@@ -25,8 +25,13 @@
   \or
   \fi}
 
+\define@choicekey*{pstool.sty}{mode}[\@tempa\@tempb]{errorstop,nonstop,batch}{%
+  \edef\pstool@mode{\@tempa mode}%
+}
+\ExecuteOptionsX{mode=batch}
+
 \DeclareOptionX{cleanup}{\def\pstool@rm@files{#1}}
-\ExecuteOptionsX{cleanup={.tex,.dvi,.ps,.pdf,.log,.aux,-blx.bib,.nav,.out,.snm,.toc}}
+\ExecuteOptionsX{cleanup={.tex,.dvi,.ps,.pdf,.log,.aux,-blx.bib,.nav,.out,.snm,.toc,.mp}}
 
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
 \ExecuteOptionsX{suffix={-process}}
@@ -59,8 +64,8 @@
 % Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
 \def\pstool@exe#1#2{%
   \pstool@writestatus{#1}{#2}%
-  \pstool@retrievestatus{#1}{\@tempa}%
-  \ifnum\@tempa > \z@
+  \pstool@retrievestatus{#1}%
+  \ifnum\pstool@status > \z@
     \PackageWarning{pstool}{Execution failed during process:^^J  #2^^J}%
     \expandafter\pstool@abort
   \fi}
@@ -89,26 +94,25 @@
     \immediate\write18{%
       touch #1\pstool@statusfile}%
   \fi}
-\def\pstool@statusfile{status-deleteme.txt}
-
+\def\pstool@statusfile{statusfile-deleteme.txt}
 
 % Read the exit status from the temporary file and delete it.\\
 % |#1| is the path\\
-% |#2| is the command to record the status within.
-\def\pstool@retrievestatus#1#2{%
-  \CatchFileEdef{#2}{#1\pstool@statusfile}{}%
+% Status is recorded in \cmd\pstool@status.
+\def\pstool@retrievestatus#1{%
+  \CatchFileEdef{\pstool@status}{#1\pstool@statusfile}{}%
   \pstool@rm{\pstool@statusfile}%
-  \ifx#2\pstool@statusfail
+  \ifx\pstool@status\pstool@statusfail
     \PackageWarning{pstool}{%
       Status of process unable to be determined:^^J  #1^^J%
       Trying to proceed... }%
-    \def#2{0}%
+    \def\pstool@status{0}%
   \fi}
-\def\pstool@statusfail{\par }
+\def\pstool@statusfail{\par }% what results when \TeX\ reads an empty file
 
 % \subsection{File age detection}
-% Use |ls| (or |dir|) to detect if the EPS is newer than the PDF:
-\def\pstool@datefiles{%
+% Use |ls| (or |dir|) to detect if the EPS is newer than the PDF.
+\def\pstool@IfnewerEPS{%
   \edef\pstool@filenames{\ip@lastelement.eps\space \ip@lastelement.pdf\space}%
   \immediate\write18{%
     cd "\ip@directpath"\pstool@cmdsep
@@ -118,25 +122,15 @@
       ls -t "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
     \fi
   }%
-  \pstool@retrievestatus{\ip@directpath}{\@tempa}%
-  \ifx\@tempa\pstool@filenames
-    \@tempswatrue
+  \pstool@retrievestatus{\ip@directpath}%
+  \ifx\pstool@status\pstool@filenames
+    \expandafter\@firstoftwo
   \else
-    \@tempswafalse
+    \expandafter\@secondoftwo
   \fi
 }
 
-
-% \section{Command parsing}
-% User input is \cmd\pstool\ (with optional |*| or |!| suffix) which turns into one of the following three macros depending on the mode.
-
-\newcommand\pstool@alwaysprocess[3][]{%
-  \pstool@inverse{#2}%
-  \pstool@process[#1]{#2}{#3}}
-
-\newcommand\pstool@neverprocess[3][]{%
-  \includegraphics[#1]{#2}}
-
+% This is used later as a wrapper for \cs{inversepath*}. Long story short, always need a relative path to a filename even if it's in the same directory.
 \def\pstool@inverse#1{%
   \edef\@tempa{\unexpanded{\inversepath*}{#1}}%
   \@tempa% calculate filename, path \& inverse path
@@ -145,19 +139,28 @@
   \fi
 }
 
+% \section{Command parsing}
+% User input is \cmd\pstool\ (with optional |*| or |!| suffix) which turns into one of the following three macros depending on the mode.
+
+\newcommand\pstool@alwaysprocess[3][]{%
+  \pstool@inverse{#2}%
+  \pstool@process{#1}{#2}{#3}}
+
+\newcommand\pstool@neverprocess[3][]{%
+  \includegraphics[#1]{#2}}
+
 % For regular operation, which processes the figure only if
 % the command is starred, or the PDF doesn't exist.
 \newcommand\pstool@maybeprocess[3][]{%
   \pstool@inverse{#2}%
   \IfFileExists{#2.pdf}{%
-    \pstool@datefiles
-    \if@tempswa\expandafter\@firstoftwo
-      \else\expandafter\@secondoftwo\fi{%
-        \pstool@process[#1]{#2}{#3}%
-      }{%
-        \includegraphics[#1]{#2}}%
+    \pstool@IfnewerEPS{% needs info from |\pstool@inverse|
+      \pstool@process{#1}{#2}{#3}%
+    }{%
+      \includegraphics[#1]{#2}%
+    }%
   }{%
-    \pstool@process[#1]{#2}{#3}%
+    \pstool@process{#1}{#2}{#3}%
   }}
 
 % \subsection{User commands}
@@ -187,25 +190,32 @@
 % \cmd\ip@lastelement\ is the filename of the figure stripped of its path (if any)
 \def\pstool@jobname{\ip@lastelement\pstool@suffix}
 
-\newcommand{\pstool@process}[3][]{%
+\def\pstool@echo#1{\immediate\write18{echo "#1"}}
+
+\newcommand\pstool@process[3]{%
+  \pstool@echo{^^J^^J=== pstool: auxiliary process: \ip@lastelement\space ===}%
   \pstool@write@processfile{#1}{#2}{#3}%
   \pstool@exe{./}{latex
       -shell-escape
       -output-format=dvi
       -output-directory="\ip@directpath"
-      -interaction=batchmode
+      -interaction=\pstool@mode\space
           "\pstool@jobname.tex"}%
+  \pstool@echo{^^J=== pstool: dvips ===}%
   \pstool@exe{\ip@directpath}{%
     dvips "\pstool@jobname.dvi"}%
+  \pstool@echo{^^J=== pstool: ps2pdf ===}%
   \if@pstool@pdfcrop@
     \pstool@exe{\ip@directpath}{%
       ps2pdf "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
+    \pstool@echo{^^J=== pstool: pdfcrop ===}%
     \pstool@exe{\ip@directpath}{%
       pdfcrop "\pstool@jobname.pdf" "\ip@lastelement.pdf"}%
   \else
     \pstool@exe{\ip@directpath}{%
       ps2pdf "\pstool@jobname.ps" "\ip@lastelement.pdf"}%
   \fi
+  \pstool@echo{^^J=== pstool: end processing ===^^J}%
   \pstool@endprocess{%
     \pstool@cleanup
     \includegraphics[#1]{#2}}}
@@ -224,9 +234,9 @@
       \else
         \unexpanded{%
           \let\origdocument\document
+          \let\EndPreamble\endinput
           \def\document{\endgroup\endinput}}%
-        \noexpand
-          \input{\jobname}%
+        \noexpand\input{\jobname}%
       \fi
 %
 % Now the preamble of the process file: (restoring document's original meaning; empty \cmd\pagestyle\ removes the page number)
@@ -263,6 +273,8 @@
     \pstool@rm{\pstool@jobname\@ii}%
 }}
 
+\providecommand\EndPreamble{}
+
 % \section{User commands}
 %
 % These all support the suffixes |*| and |!|, so each user command is defined as a wrapper to \cmd\pstool.
@@ -280,44 +292,44 @@
 }
 
 % for EPS figures with psfrag:
-\newcommand\psfragfig[2][]{\pstool@psfragfig{\pstool}[#1]{#2}}
-\WithSuffix\newcommand\psfragfig*[2][]{\pstool@psfragfig{\pstool*}[#1]{#2}}
-\WithSuffix\newcommand\psfragfig![2][]{\pstool@psfragfig{\pstool!}[#1]{#2}}
+\newcommand\psfragfig[2][]{\pstool@psfragfig{#1}{#2}{\pstool}}
+\WithSuffix\newcommand\psfragfig*[2][]{\pstool@psfragfig{#1}{#2}{\pstool*}}
+\WithSuffix\newcommand\psfragfig![2][]{\pstool@psfragfig{#1}{#2}{\pstool!}}
 
-\def\pstool@psfragfig#1[#2]#3{%
+\newcommand\pstool@psfragfig[3]{%
   \@ifnextchar\bgroup{%
-    \pstool@@psfragfig{#1}[#2]{#3}%
+    \pstool@@psfragfig{#1}{#2}{#3}%
   }{%
-    \pstool@@psfragfig{#1}[#2]{#3}{}%
+    \pstool@@psfragfig{#1}{#2}{#3}{}%
   }%
 }
 
-\def\pstool@@psfragfig#1[#2]#3#4{%
-  \IfFileExists{#3.eps}{%
-    \def\pstool@eps{#3}%
-    \OnlyIfFileExists{#3-psfrag.eps}{%
-      \PackageWarning{pstool}{Graphic "#3-psfrag.eps" exists but "#3.eps" is being used}%
+\newcommand\pstool@@psfragfig[4]{%
+  \IfFileExists{#2-psfrag.eps}{%
+    \def\pstool@eps{#2-psfrag}%
+    \OnlyIfFileExists{#2.eps}{%
+      \PackageWarning{pstool}{Graphic "#2.eps" exists but "#2-psfrag.eps" is being used}%
     }%
   }{%
-    \IfFileExists{#3-psfrag.eps}{%
-      \def\pstool@eps{#3-psfrag}%
+    \IfFileExists{#2.eps}{%
+      \def\pstool@eps{#2}%
     }{%
       \PackageError{pstool}{%
-        No EPS file "#3.eps" or "#3-psfrag.eps" found%
+        No graphic "#2.eps" or "#2-psfrag.eps" found%
       }{%
         Check the path and whether the file exists.%
       }%
     }%
   }%
-  #1[#2]{\pstool@eps}{%
-    \InputIfFileExists{#3-psfrag.tex}{%
-      \OnlyIfFileExists{#3.tex}{%
+  #3[#1]{\pstool@eps}{%
+    \InputIfFileExists{#2-psfrag.tex}{%
+      \OnlyIfFileExists{#2.tex}{%
         \PackageWarning{pstool}{%
-          File "#3.tex" exists that may contain macros for "#3.eps"^^J%
-          But file "#3-psfrag.tex" is being used instead.}%
+          File "#2.tex" exists that may contain macros for "\pstool@eps.eps"^^J%
+          But file "#2-psfrag.tex" is being used instead.}%
       }%
     }{%
-      \InputIfFileExists{#3.tex}{}{}%
+      \InputIfFileExists{#2.tex}{}{}%
     }%
     #4}%
 }
@@ -334,14 +346,5 @@
     \renewcommand\includegraphics[2][]{#1[#2]{##2}{}}%
     \input{#3}%
   \endgroup
-}
-
-% for Mathematica's MathPSfrag:
-\newcommand\mathpsfragfig[2][]{\pstool@mathpsfragfig{\pstool}[#1]{#2}}
-\WithSuffix\newcommand\mathpsfragfig*[2][]{\pstool@mathpsfragfig{\pstool*}[#1]{#2}}
-\WithSuffix\newcommand\mathpsfragfig![2][]{\pstool@mathpsfragfig{\pstool!}[#1]{#2}}
-
-\def\pstool@mathpsfragfig#1[#2]#3{%
-  #1[#2]{#3-psfrag}{\input{#3-psfrag}}%
 }
 
