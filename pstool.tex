@@ -21,14 +21,14 @@ Copyright 2008
 \end{filecontents*}
 
 \begin{filecontents*}{pstool.sty}
-\ProvidesPackage{pstool}[2008/08/22 v0.7
+\ProvidesPackage{pstool}[2008/08/26 v0.7
   Wrapper for processing PostScript/psfrag figures]
 
 % \section{Initialisations}
 % External packages
 \RequirePackage{%
-  catchfile,color,ifpdf,ifplatform,
-  inversepath,graphicx,suffix,xkeyval}
+  catchfile,color,ifpdf,ifplatform,graphicx,suffix,xkeyval}
+\RequirePackage{inversepath}[2008/07/31 v0.2]
 
 % Allocations
 \newif\if@pstool@always@
@@ -561,7 +561,6 @@ One problem that \pkg{pstool} does not (currently) solve on its own is the inclu
 \end{enumerate}
 I hope to directly solve this problem in the future by using a caching folder for the auxiliary processing in such cases.
 
-
 \section{To-do list for future versions}
 Further development on this package will be driven by my needs and the wishes of people who make their needs known to me. Here're a few ideas I haven't had time to implement. 
 \begin{enumerate}
@@ -575,6 +574,16 @@ Further development on this package will be driven by my needs and the wishes of
 \item More flexible usage (support things like \cs{begin{postscript}} in \pkg{pst-pdf}).
 \item \pkg{mylatex} integration, which would definitively solve the whole preamble problem.
 \end{enumerate}
+
+\section{Package information}
+The most recent publicly released version of \pkg{pstool} is available at \textsc{CTAN}:\\
+\centerline{\url{http://tug.ctan.org/pkg/pstool/}}\\ 
+Historical and developmental versions are available at GitHub:\\ \centerline{\url{http://github.com/wspr/pstool/}}\\
+While general feedback at \url{wspr81@gmail.com} is welcomed, specific bugs should be reported through the bug tracker at FogBugz: \url{https://wspr.fogbugz.com/} (click `\textsc{tasks}: Enter a New Case').
+
+This package is freely modifiable and distributable under the terms and conditions of the \LaTeX\ Project Public Licence, version 1.3c or greater (your choice). The latest version of
+this license is available at: \url{http://www.latex-project.org/lppl.txt}. This work is maintained by \textsc{Will Robertson}.
+
 
 {\addtocontents{toc}{\protect\end{varwidth}\protect\hfill}}
 {\addtocontents{toc}{\protect\begin{varwidth}[t]{\tocwidthB\linewidth}}}
