@@ -24,7 +24,6 @@ Copyright 2008
 \ProvidesPackage{pstool}[2008/08/26 v0.7
   Wrapper for processing PostScript/psfrag figures]
 
-% \section{Initialisations}
 % External packages
 \RequirePackage{%
   catchfile,color,ifpdf,ifplatform,graphicx,suffix,xkeyval}
@@ -34,7 +33,6 @@ Copyright 2008
 \newif\if@pstool@always@
 \newif\if@pstool@never@
 \newif\if@pstool@pdfcrop@
-\newif\if@pstool@nopreamble@
 \newif\if@pstool@nofig@
 \newwrite\pstool@out
 
@@ -61,7 +59,7 @@ Copyright 2008
 \ExecuteOptionsX{mode=batch}
 
 \DeclareOptionX{cleanup}{\def\pstool@rm@files{#1}}
-\ExecuteOptionsX{cleanup={.tex, .dvi, .ps, .pdf, .log, .aux}}
+\ExecuteOptionsX{cleanup={.tex,.dvi,.ps,.pdf,.log,.aux}}
 
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
 \ExecuteOptionsX{suffix={-pstool}}
@@ -128,7 +126,7 @@ Copyright 2008
     \immediate\write18{%
       touch #1\pstool@statusfile}%
   \fi}
-\def\pstool@statusfile{statusfile-deleteme.txt}
+\def\pstool@statusfile{pstool-statusfile.txt}
 
 % Read the exit status from the temporary file and delete it.\\
 % |#1| is the path\\
@@ -258,27 +256,19 @@ Copyright 2008
       \noexpand\pdfoutput=0% force DVI mode if not already
 %
 % Input the main document; redefine the document environment so only the preamble is read:
-      \if@pstool@nopreamble@
-        \unexpanded{%
-          \documentclass{minimal}
-          \usepackage{graphicx}}
-      \else
-        \unexpanded{%
-          \let\origdocument\document
-          \let\EndPreamble\endinput
-          \def\document{\endgroup\endinput}}%
-        \noexpand\input{\jobname}%
-      \fi
+      \unexpanded{%
+        \let\origdocument\document
+        \let\EndPreamble\endinput
+        \def\document{\endgroup\endinput}}%
+      \noexpand\input{\jobname}%
 %
 % Now the preamble of the process file: (restoring document's original meaning; empty \cmd\pagestyle\ removes the page number)
       \if@pstool@pdfcrop@\else
         \noexpand\usepackage[active,tightpage]{preview}
       \fi
-      \if@pstool@nopreamble@\else
-        \unexpanded{%
-          \let\document\origdocument
-          \pagestyle{empty}}%
-      \fi
+      \unexpanded{%
+        \let\document\origdocument
+        \pagestyle{empty}}%
 %
 % And the document body to place the graphic on a page of its own:
       \unexpanded{%
@@ -309,18 +299,6 @@ Copyright 2008
 % \section{User commands}
 %
 % These all support the suffixes |*| and |!|, so each user command is defined as a wrapper to \cmd\pstool.
-
-% for plain EPS figures (no psfrag):
-\newcommand\epsfig[2][]{\pstool@epsfig{\pstool}[#1]{#2}}
-\WithSuffix\newcommand\epsfig*[2][]{\pstool@epsfig{\pstool*}[#1]{#2}}
-\WithSuffix\newcommand\epsfig![2][]{\pstool@epsfig{\pstool!}[#1]{#2}}
-
-\def\pstool@epsfig#1[#2]#3{%
-  \begingroup
-    \@pstool@nopreamble@true
-    #1[#2]{#3}{}%
-  \endgroup
-}
 
 % for EPS figures with psfrag:
 \newcommand\psfragfig[2][]{\pstool@psfragfig{#1}{#2}{}}
@@ -480,6 +458,8 @@ Until now, the best way to use these packages while running pdf\/\LaTeX\ has bee
 
 The disadvantage with this method is that for every document compilation, \emph{every} graphic must be re-processed. The \pkg{pstool} package uses a different approach to allow each graphic to be processed only as-needed, speeding up and simplifying the typesetting of the main document.
 
+More flexible usage to provide a complete replacement for \pkg{pst-pdf} (e.g., support the \cs{begin{postscript}} environment) is planned for a possible future release. If you simply need to automatically convert plain \EPS\ files to \PDF, I recommend using the \pkg{epstopdf} package with the \pkgopt{update,prepend} package options. (The two packages should be completely compatible.)
+
 \section{Processing modes}
 
 The generic command provided by this package is
@@ -497,9 +477,6 @@ By default \cmd\pstool\ can be used in the following modes:
 
 It is useful to define higher-level commands with \cmd\pstool\ for including specific types of \EPS\ graphics that take advantage of \pkg{psfrag}. As an example, this package defines the following commands (some of which use internal features of \pkg{pstool}. These commands all support the |*| or |!| suffixes.
 \begin{description}
-\item[{\cmd\epsfig\arg[opts]\arg{filename}}] 
-Insert a plain \EPS\ figure. It is more convenient than using, for example, the \pkg{epstopdf} package since it will regenerate the \PDF\ only if the \EPS\ file changes.
-
 \item[{\cmd\psfragfig\arg[opts]\arg{filename}}] 
 This is the catch-all macro to support a wide range of graphics naming schemes. It insert an \EPS\ file named either \<filename>|.eps| or \<filename>|-psfrag.eps| (in order of preference), and uses \pkg{psfrag} definitions contained within either the file \<filename>|.tex| or \<filename>|-psfrag.tex|. 
 
@@ -510,7 +487,6 @@ As above, but inserts the arbitrary code \<input definitions>, which will usuall
 
 \item[{\cmd\laprintfig\arg[opts]\arg{filename}}] 
 Insert figures that have been produced with \textsc{Matlab}'s \pkg{laprint} package. This package requires a special case because the \pkg{psfrag} output it produces is rather awkward to deal with.
-
 \end{description}
 
 \section{Package options}
@@ -523,6 +499,8 @@ While the suffixes |*| and |!| can be used to force or disable (respectively) th
 \item[\pkgopt{process=all}] All \cmd\pstool\ graphics are processed; and,
 \item[\pkgopt{process=none}] No \cmd\pstool\ graphics are processed.\footnote{If \pkg{pstool} is loaded in a \LaTeX\ document in \DVI\ mode, this is the option that is used since no external processing is required for these graphics.}
 \end{description}
+
+Also note that it would be nice to detect the age of files other than the \EPS\ and \PDF\ graphics in order to affect the processing decisions. This is planned for a possible future release.
 
 \subsection{Cropping graphics}
 Graphics are cropped to the appropriate size with the \pkg{preview} package. Sometimes, however, this will not be sufficient, such as when an inserted label protrudes from the natural bounding box of the figure, or when the original bounding box of the figure is wrong. A good way to solve this problem is to use the \pkg{pdfcrop} program (requires a Perl installation under Windows). This can be activated in \pkg{pstool} with the \pkgopt{pdfcrop} package option.
@@ -545,11 +523,17 @@ These three package options correspond to the \LaTeX\ command line options \text
 
 \section{Miscellaneous details}
 
+\subsection{The \cmd\EndPreamble\ command}
+
 At present, \pkg{pstool} scans the preamble of the main document by redefining |\begin{document}|, but this is rather fragile  because many classes and packages do their own redefined which overwrites \pkg{pstool}'s attempt. In this case, place the command\par
 {\centering|\EndPreamble|\par}\noindent
 where-ever you'd like the preamble in the auxiliary processing to end. This is also handy to bypass anything in the preamble that will never be required for the figures but which will slow down or otherwise conflict with the auxiliary processing.
 
-\section{A note on file paths}
+\subsection{Cross-reference limitations}
+
+The initial release of this package does not support cross-references within the \pkg{psfrag} labels of the included graphics. (If, say, you wish to refer to an equation number within a figure.) A future release of \pkg{pstool} may fix this limitation.
+
+\subsection{A note on file paths}
 
 \pkg{pstool} does its best to ensure that you can put image files where-ever you like and the auxiliary processing will still function correctly. In order to ensure this,  the external |pdflatex| compilation uses the |-output-directory| feature of \pdfTeX. This command line option is definitely supported on all platforms in TeX~Live~2008 and MiKTeX~2.7, but earlier distributions may not be supported.
 
@@ -561,20 +545,6 @@ One problem that \pkg{pstool} does not (currently) solve on its own is the inclu
 \end{enumerate}
 I hope to directly solve this problem in the future by using a caching folder for the auxiliary processing in such cases.
 
-\section{To-do list for future versions}
-Further development on this package will be driven by my needs and the wishes of people who make their needs known to me. Here're a few ideas I haven't had time to implement. 
-\begin{enumerate}
-\item Use a `caching' method to 
-  \begin{enumerate}
-  \item test for changes within in-document \<input definition> text,
-  \item get uncle image inclusion working.
-  \end{enumerate}
-\item Generalise ``process if older'' code for multiple files.
-\item Direct support for \cmd\includegraphics\ with \EPS\ files.
-\item More flexible usage (support things like \cs{begin{postscript}} in \pkg{pst-pdf}).
-\item \pkg{mylatex} integration, which would definitively solve the whole preamble problem.
-\end{enumerate}
-
 \section{Package information}
 The most recent publicly released version of \pkg{pstool} is available at \textsc{CTAN}:\\
 \centerline{\url{http://tug.ctan.org/pkg/pstool/}}\\ 
@@ -584,9 +554,8 @@ While general feedback at \url{wspr81@gmail.com} is welcomed, specific bugs shou
 This package is freely modifiable and distributable under the terms and conditions of the \LaTeX\ Project Public Licence, version 1.3c or greater (your choice). The latest version of
 this license is available at: \url{http://www.latex-project.org/lppl.txt}. This work is maintained by \textsc{Will Robertson}.
 
-
 {\addtocontents{toc}{\protect\end{varwidth}\protect\hfill}}
-{\addtocontents{toc}{\protect\begin{varwidth}[t]{\tocwidthB\linewidth}}}
+{\addtocontents{toc}{\protect\begin{varwidth}[t]{\protect\tocwidthB\protect\linewidth}}}
 \clearpage
 \part{Implementation}
 \parindent=0pt

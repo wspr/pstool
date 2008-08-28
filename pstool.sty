@@ -1,7 +1,6 @@
 \ProvidesPackage{pstool}[2008/08/26 v0.7
   Wrapper for processing PostScript/psfrag figures]
 
-% \section{Initialisations}
 % External packages
 \RequirePackage{%
   catchfile,color,ifpdf,ifplatform,graphicx,suffix,xkeyval}
@@ -11,7 +10,6 @@
 \newif\if@pstool@always@
 \newif\if@pstool@never@
 \newif\if@pstool@pdfcrop@
-\newif\if@pstool@nopreamble@
 \newif\if@pstool@nofig@
 \newwrite\pstool@out
 
@@ -38,7 +36,7 @@
 \ExecuteOptionsX{mode=batch}
 
 \DeclareOptionX{cleanup}{\def\pstool@rm@files{#1}}
-\ExecuteOptionsX{cleanup={.tex, .dvi, .ps, .pdf, .log, .aux}}
+\ExecuteOptionsX{cleanup={.tex,.dvi,.ps,.pdf,.log,.aux}}
 
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
 \ExecuteOptionsX{suffix={-pstool}}
@@ -105,7 +103,7 @@
     \immediate\write18{%
       touch #1\pstool@statusfile}%
   \fi}
-\def\pstool@statusfile{statusfile-deleteme.txt}
+\def\pstool@statusfile{pstool-statusfile.txt}
 
 % Read the exit status from the temporary file and delete it.\\
 % |#1| is the path\\
@@ -235,27 +233,19 @@
       \noexpand\pdfoutput=0% force DVI mode if not already
 %
 % Input the main document; redefine the document environment so only the preamble is read:
-      \if@pstool@nopreamble@
-        \unexpanded{%
-          \documentclass{minimal}
-          \usepackage{graphicx}}
-      \else
-        \unexpanded{%
-          \let\origdocument\document
-          \let\EndPreamble\endinput
-          \def\document{\endgroup\endinput}}%
-        \noexpand\input{\jobname}%
-      \fi
+      \unexpanded{%
+        \let\origdocument\document
+        \let\EndPreamble\endinput
+        \def\document{\endgroup\endinput}}%
+      \noexpand\input{\jobname}%
 %
 % Now the preamble of the process file: (restoring document's original meaning; empty \cmd\pagestyle\ removes the page number)
       \if@pstool@pdfcrop@\else
         \noexpand\usepackage[active,tightpage]{preview}
       \fi
-      \if@pstool@nopreamble@\else
-        \unexpanded{%
-          \let\document\origdocument
-          \pagestyle{empty}}%
-      \fi
+      \unexpanded{%
+        \let\document\origdocument
+        \pagestyle{empty}}%
 %
 % And the document body to place the graphic on a page of its own:
       \unexpanded{%
@@ -286,18 +276,6 @@
 % \section{User commands}
 %
 % These all support the suffixes |*| and |!|, so each user command is defined as a wrapper to \cmd\pstool.
-
-% for plain EPS figures (no psfrag):
-\newcommand\epsfig[2][]{\pstool@epsfig{\pstool}[#1]{#2}}
-\WithSuffix\newcommand\epsfig*[2][]{\pstool@epsfig{\pstool*}[#1]{#2}}
-\WithSuffix\newcommand\epsfig![2][]{\pstool@epsfig{\pstool!}[#1]{#2}}
-
-\def\pstool@epsfig#1[#2]#3{%
-  \begingroup
-    \@pstool@nopreamble@true
-    #1[#2]{#3}{}%
-  \endgroup
-}
 
 % for EPS figures with psfrag:
 \newcommand\psfragfig[2][]{\pstool@psfragfig{#1}{#2}{}}
