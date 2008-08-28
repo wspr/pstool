@@ -10,7 +10,7 @@
 \newif\if@pstool@always@
 \newif\if@pstool@never@
 \newif\if@pstool@pdfcrop@
-\newif\if@pstool@nofig@
+\newif\if@pstool@verbose@
 \newwrite\pstool@out
 
 % These are cute
@@ -18,7 +18,15 @@
 \providecommand\NotIfFileExists[2]{\IfFileExists{#1}{}{#2}}
 
 % \subsection{Package options}
-\DeclareOptionX{pdfcrop}{\@pstool@pdfcrop@true}
+
+\define@choicekey*{pstool.sty}{crop}[\@tempa\@tempb]{preview,pdfcrop}{%
+  \ifcase\@tempb\relax
+    \@pstool@pdfcrop@false
+  \or
+    \@pstool@pdfcrop@true
+  \or
+  \fi
+}
 
 \define@choicekey*{pstool.sty}{process}[\@tempa\@tempb]{all,none,auto}{%
   \ifcase\@tempb\relax
@@ -31,6 +39,11 @@
 
 \define@choicekey*{pstool.sty}{mode}
   [\@tempa\@tempb]{errorstop,nonstop,batch}{%
+    \ifnum\@tempb=2\relax
+      \@pstool@verbose@false
+    \else
+      \@pstool@verbose@true
+    \fi
     \edef\pstool@mode{\@tempa mode}%
 }
 \ExecuteOptionsX{mode=batch}
@@ -56,7 +69,16 @@
 % Used to echo information to the console output.
 % Can't use \typeout because it's asynchronous with
 % any |\immediate\write18| processes (for some reason).
-\def\pstool@echo#1{\immediate\write18{echo "#1"}}
+\def\pstool@echo#1{%
+  \if@pstool@verbose@
+    \pstool@echo@verbose{#1}%
+  \fi}
+
+\def\pstool@echo@verbose#1{%
+  \immediate\write18{echo "#1"}%
+}
+
+\let\pstool@includegraphics\includegraphics
 
 % Command line abstractions between platforms:
 \edef\pstool@cmdsep{\ifwindows\string&\else\string;\fi\space}
@@ -71,16 +93,16 @@
 
 % Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
 \newcommand\pstool@exe[3]{%
-  \pstool@echo{^^J === pstool: #1 ===}%
+  \pstool@echo{^^J=== pstool: #1 ===}%
   \pstool@writestatus{#2}{#3}%
   \pstool@retrievestatus{#2}%
   \ifnum\pstool@status > \z@
-    \PackageWarning{pstool}{Execution failed during process:^^J  #3^^J}%
+    \PackageWarning{pstool}{Execution failed during process:^^J\space\space#3^^JThis warning occurred}%
     \expandafter\pstool@abort
   \fi}
 
 % Edit this definition to print something else when graphic processing fails.
-\def\pstool@error{\fbox{\parbox{\linewidth}{\color{red}\ttfamily\scshape
+\def\pstool@error{\fbox{\parbox{0.8\linewidth}{\color{red}\raggedright\ttfamily\scshape\small
   An error occured processing graphic \upshape`\ip@directpath\ip@lastelement'}}}
 
 \def\pstool@abort#1\pstool@endprocess{\pstool@error\@gobble}
@@ -146,17 +168,25 @@
   \ifx\ip@directpath\@empty
     \def\ip@directpath{./}%
   \fi
+% Strip off a possible wayward |.eps| suffix.
+  \edef\ip@lastelement{%
+    \expandafter\pstool@stripEPS\ip@lastelement.eps\@nil
+  }%
 }
+
+\def\pstool@stripEPS#1.eps#2\@nil{#1}
+% |test.eps\@nil|->|test|\\
+% |test.eps.eps\@nil|->|test|
 
 % \section{Command parsing}
 % User input is \cmd\pstool\ (with optional |*| or |!| suffix) which turns into one of the following three macros depending on the mode.
 
 \newcommand\pstool@alwaysprocess[3][]{%
   \pstool@getpaths{#2}%
-  \pstool@process{#1}{#2}{#3}}
+  \pstool@process{#1}{#3}}
 
 \newcommand\pstool@neverprocess[3][]{%
-  \includegraphics[#1]{#2}}
+  \pstool@includegraphics[#1]{#2}}
 
 % For regular operation, which processes the figure only if
 % the command is starred, or the PDF doesn't exist.
@@ -164,12 +194,12 @@
   \pstool@getpaths{#2}%
   \IfFileExists{#2.pdf}{%
     \pstool@IfnewerEPS{% needs info from |\pstool@getpaths|
-      \pstool@process{#1}{#2}{#3}%
+      \pstool@process{#1}{#3}%
     }{%
-      \includegraphics[#1]{#2}%
+      \pstool@includegraphics[#1]{#2}%
     }%
   }{%
-    \pstool@process{#1}{#2}{#3}%
+    \pstool@process{#1}{#3}%
   }}
 
 % \section{User commands}
@@ -200,9 +230,9 @@
 \def\pstool@jobname{\ip@lastelement\pstool@suffix}
 
 % And this is the main macro.
-\newcommand\pstool@process[3]{%
-  \pstool@echo{^^J}%
-  \pstool@write@processfile{#1}{#2}{#3}%
+\newcommand\pstool@process[2]{%
+  \pstool@echo@verbose{^^J=== pstool: begin processing ===}%
+  \pstool@write@processfile{#1}{\ip@directpath\ip@lastelement}{#2}%
   \pstool@exe{auxiliary process: \ip@lastelement\space}
     {./}{latex
       -shell-escape
@@ -210,8 +240,9 @@
       -output-directory="\ip@directpath"
       -interaction=\pstool@mode\space
           "\pstool@jobname.tex"}%
+% Execute dvips in quiet mode if latex is run in (non/error)stop mode:
   \pstool@exe{dvips}{\ip@directpath}{%
-    dvips "\pstool@jobname.dvi"}%
+    dvips \if@pstool@verbose@\else -q \fi -Ppdf "\pstool@jobname.dvi"}%
   \if@pstool@pdfcrop@
     \pstool@exe{ps2pdf}{\ip@directpath}{%
       ps2pdf "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
@@ -224,45 +255,43 @@
   \pstool@echo{^^J=== pstool: end processing ===^^J}%
   \pstool@endprocess{%
     \pstool@cleanup
-    \includegraphics[#1]{#2}}}
+    \pstool@includegraphics[#1]{\ip@directpath\ip@lastelement}}}
 
 % The file that is written for processing is set up to read the preamble of the original document and set the graphic on an empty page (cropping to size is done either here with \pkg{preview} or later with \pkg{pdfcrop}).
 \def\pstool@write@processfile#1#2#3{%
     \immediate\openout\pstool@out #2\pstool@suffix.tex\relax
     \immediate\write\pstool@out{%
-      \noexpand\pdfoutput=0% force DVI mode if not already
+      \noexpand\pdfoutput=0^^J% force DVI mode if not already
 %
 % Input the main document; redefine the document environment so only the preamble is read:
       \unexpanded{%
-        \let\origdocument\document
-        \let\EndPreamble\endinput
-        \def\document{\endgroup\endinput}}%
-      \noexpand\input{\jobname}%
+        \let\origdocument\document^^J%
+        \let\EndPreamble\endinput^^J%
+        \def\document{\endgroup\endinput}^^J}%
+      \noexpand\input{\jobname}^^J%
 %
 % Now the preamble of the process file: (restoring document's original meaning; empty \cmd\pagestyle\ removes the page number)
       \if@pstool@pdfcrop@\else
-        \noexpand\usepackage[active,tightpage]{preview}
+        \noexpand\usepackage[active,tightpage]{preview}^^J%
       \fi
       \unexpanded{%
-        \let\document\origdocument
-        \pagestyle{empty}}%
+        \let\document\origdocument^^J%
+        \pagestyle{empty}^^J}%
 %
 % And the document body to place the graphic on a page of its own:
       \unexpanded{%
-        \begin{document}
-        \centering\null\vfill}%
+        \begin{document}^^J%
+        \centering\null\vfill^^J}%
       \if@pstool@pdfcrop@\else
-        \noexpand\begin{preview}%
+        \noexpand\begin{preview}^^J%
       \fi
-      \unexpanded{#3}% this is the "psfrag" material
-      \if@pstool@nofig@\else
-        \noexpand\includegraphics[#1]{\ip@lastelement}%
-      \fi
+      \unexpanded{#3^^J}% this is the "psfrag" material
+      \noexpand\includegraphics[#1]{\ip@lastelement}^^J%
       \if@pstool@pdfcrop@\else
-        \noexpand\end{preview}%
+        \noexpand\end{preview}^^J%
       \fi
       \unexpanded{%
-        \vfill\end{document}}%
+        \vfill\end{document}}^^J%
       }%
     \immediate\closeout\pstool@out}
 
@@ -322,28 +351,5 @@
     }%
     #4%
   }%
-}
-
-% for Matlab's laprint:
-\newcommand\laprintfig[2][]{\pstool@laprintfig{#1}{#2}{}}
-\WithSuffix\newcommand\laprintfig*[2][]{\pstool@laprintfig{#1}{#2}{*}}
-\WithSuffix\newcommand\laprintfig![2][]{\pstool@laprintfig{#1}{#2}{!}}
-
-% Parse optional \<input definitions>
-\newcommand\pstool@laprintfig[3]{%
-  \@ifnextchar\bgroup{%
-    \pstool@@laprintfig{#1}{#2}{#3}%
-  }{%
-    \pstool@@laprintfig{#1}{#2}{#3}{}%
-  }%
-}
-
-\newcommand\pstool@@laprintfig[4]{%
-  \begingroup
-    \@pstool@nofig@true
-    \renewcommand\resizebox[3]{##3}%
-    \renewcommand\includegraphics[2][]{\pstool#3[#1]{##2}{}}%
-    \input{#2}%
-  \endgroup
 }
 

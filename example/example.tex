@@ -4,26 +4,24 @@
 \usepackage{color}
 \color{red}
 \usepackage{psfrag}
-\usepackage[process=auto,mode=nonstop]{pstool}
+\usepackage[
+%  process=all,
+%  mode=nonstop,
+%  crop=pdfcrop,
+%  cleanup={}
+    ]{pstool}
 \input macros.tex
 \begin{document}
 \EndPreamble
 
 External macros: \a, \b, \c
 
-\psfragfig*{trial}{%
-  \psfrag{[Mp]}{$M_\a$!~\ref{sec}}%
+\psfragfig{trial}{%
+  \psfrag{[Mp]}{$M_\a$!}%
 }
 
 \psfragfig{subdir/trial2}{%
   \psfrag{[Mp]}{$Z_\b$}%
 }
-
-\epsfig{trial3}
-
-\clearpage
-
-\section{test}
-\label{sec}
 
 \end{document}
