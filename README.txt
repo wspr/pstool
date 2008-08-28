@@ -1,6 +1,6 @@
 __________________
 The pstool package
-v0.7
+v0.8
 
 A package like "pst-pdf" for processing PostScript graphics
 within pdfLaTeX documets. The difference with this package

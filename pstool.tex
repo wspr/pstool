@@ -2,7 +2,7 @@
 \begin{filecontents*}{README.txt}
 __________________
 The pstool package
-v0.7
+v0.8
 
 A package like "pst-pdf" for processing PostScript graphics 
 within pdfLaTeX documets. The difference with this package 
@@ -26,8 +26,8 @@ Copyright 2008
 
 % External packages
 \RequirePackage{%
-  catchfile,color,ifpdf,ifplatform,graphicx,suffix,xkeyval}
-\RequirePackage{inversepath}[2008/07/31 v0.2]
+  catchfile,color,ifpdf,ifplatform,graphicx,psfrag,suffix,xkeyval}
+\RequirePackage{inversepath}[2008/08/28 v0.8]
 
 % Allocations
 \newif\if@pstool@always@
@@ -464,9 +464,13 @@ Until now, the best way to use these packages while running pdf\/\LaTeX\ has bee
 
 The disadvantage with this method is that for every document compilation, \emph{every} graphic must be re-processed. The \pkg{pstool} package uses a different approach to allow each graphic to be processed only as-needed, speeding up and simplifying the typesetting of the main document.
 
+At present this package is designed solely as a replacement for \pkg{pst-pdf} in the r\^ole of supporting the \pkg{psfrag} package (which it loads) in pdf\/\LaTeX. 
+
 More flexible usage to provide a complete replacement for \pkg{pst-pdf} (e.g., support the \cs{begin{postscript}} environment) is planned for a possible future release. If you simply need to automatically convert plain \EPS\ files to \PDF, I recommend using the \pkg{epstopdf} package with the \pkgopt{update,prepend} package options. (The two packages should be completely compatible.)
 
 \section{Processing modes}
+
+Load the package as usual; no package options are required by default, but there are a few useful options described later in section~\ref{pkgopt}. Note that you do not need to load \pkg{psfrag} separately.
 
 The generic command provided by this package is
 \begin{center}
@@ -493,6 +497,7 @@ As above, but inserts the arbitrary code \<input definitions>, which will usuall
 \end{description}
 
 \section{Package options}
+\label{pkgopt}
 
 \subsection{Forcing/disabling graphics processing}
 
