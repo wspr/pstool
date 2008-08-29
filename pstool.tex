@@ -111,17 +111,21 @@ Copyright 2008
 \edef\pstool@cmdsep{\ifwindows\string&\else\string;\fi\space}
 \edef\pstool@rm@cmd{\ifwindows del \else rm -- \fi}
 
-% Delete a file if it exists:
-\newcommand\pstool@rm[1]{%
-  \OnlyIfFileExists{\ip@directpath#1}{%
+% Delete a file if it exists (only the filename is supplied and the path is inferred):
+\newcommand\pstool@rm[2]{%
+  \OnlyIfFileExists{#1#2}{%
     \immediate\write18{%
-      cd "\ip@directpath"\pstool@cmdsep\pstool@rm@cmd "#1"}}%
+      cd "#1"\pstool@cmdsep\pstool@rm@cmd "#2"}}%
 }
 
 % Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
+%
+% |#1|: `name' of process\\
+% |#2|: relative path where to execute the command\\
+% |#3|: the command itself
 \newcommand\pstool@exe[3]{%
   \pstool@echo{^^J=== pstool: #1 ===}%
-  \pstool@writestatus{#2}{#3}%
+  \pstool@shellexecute{#2}{#3}%
   \pstool@retrievestatus{#2}%
   \ifnum\pstool@status > \z@
     \PackageWarning{pstool}{Execution failed during process:^^J\space\space#3^^JThis warning occurred}%
@@ -136,7 +140,7 @@ Copyright 2008
 \let\pstool@endprocess\@firstofone
 
 % It is necessary while executing commands on the shell to write the exit status to a temporary file to test for failures in processing. (If all versions of |pdflatex| supported input pipes, things might be different.)
-\def\pstool@writestatus#1#2{%
+\def\pstool@shellexecute#1#2{%
   \immediate\write18{%
     cd "#1" \pstool@cmdsep
     #2 \pstool@cmdsep
@@ -159,7 +163,7 @@ Copyright 2008
 % Status is recorded in \cmd\pstool@status.
 \def\pstool@retrievestatus#1{%
   \CatchFileEdef{\pstool@status}{#1\pstool@statusfile}{}%
-  \pstool@rm{\pstool@statusfile}%
+  \pstool@rm{#1}{\pstool@statusfile}%
   \ifx\pstool@status\pstool@statusfail
     \PackageWarning{pstool}{%
       Status of process unable to be determined:^^J  #1^^J%
@@ -324,7 +328,7 @@ Copyright 2008
 
 \def\pstool@cleanup{%
   \@for\@ii:=\pstool@rm@files\do{%
-    \pstool@rm{\pstool@jobname\@ii}%
+    \pstool@rm{\ip@directpath}{\pstool@jobname\@ii}%
 }}
 
 \providecommand\EndPreamble{}
@@ -450,8 +454,7 @@ Copyright 2008
 \title{The \pkg{pstool} package}
 \author{
   \normalsize Concept by Zebb Prime\\
-  \normalsize Package by Will Robertson\\
-  \small\texttt{wspr81@gmail.com}}
+  \normalsize Package by Will Robertson\footnote{\texttt{wspr81@gmail.com}}}
 \date{\fileversion\qquad\filedate}
 
 \maketitle
