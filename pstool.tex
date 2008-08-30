@@ -24,7 +24,7 @@ Will Robertson & Zebb Prime
 Copyright 2008
 \end{filecontents*}
 
-\begin{filecontents*}{pstool.sty}
+\begin{filecontents}{pstool.sty}
 \ProvidesPackage{pstool}[2008/08/28 v0.8
   Wrapper for processing PostScript/psfrag figures]
 
@@ -384,7 +384,7 @@ Copyright 2008
   }%
 }
 
-\end{filecontents*}
+\end{filecontents}
 %%%%%%%%%1%%%%%%%%%2%%%%%%%%%3%%%%%%%%%4%%%%%%%%%5
 
 
@@ -459,72 +459,80 @@ Copyright 2008
 
 \maketitle
 
+\begin{abstract}
+This package defines the \cmd\psfragfig\ user command for including \EPS\ files that use \pkg{psfrag} features in a pdf\/\LaTeX\ document. The command \cmd\pstool\ can be used to define other commands with similar behaviour.
+\end{abstract}
+
 \tableofcontents
 
 \part{User documentation}
 
 \section{Introduction}
 
-While pdf\/\LaTeX\ is a great improvement in many ways over the `old method' of \DVI$\to$\PS$\to$\PDF, it loses the ability to interface with a generic PostScript workflow, used to great effect in numerous packages, most notably \pkg{PSTricks} and \pkg{psfrag}.
+While directly producing \PDF\ output with pdf\/\LaTeX\ is a great improvement in many ways over the `old method' of \DVI$\to$\PS$\to$\PDF, it loses the ability to interface with a generic PostScript workflow, used to great effect in numerous packages, most notably \pkg{PSTricks} and \pkg{psfrag}.
 
-Until now, the best way to use these packages while running pdf\/\LaTeX\ has been to use the \pkg{pst-pdf} package, which processes the entire document through a filter, sending the relevant PostScript environments through a single pass of \DVI$\to$\PS$\to$\PDF. The resulting \PDF\ versions of each image are then included into the pdf\/\LaTeX\ document. The \pkg{auto-pst-pdf} package provides a wrapper to perform all of this automatically.
+Until now, the best way to use these packages while running pdf\/\LaTeX\ has been to use the \pkg{pst-pdf} package, which processes the entire document through a filter, sending the relevant PostScript environments (only) through a single pass of \LaTeX\ producing \DVI$\to$\PS$\to$\PDF. The resulting \PDF\ versions of each graphic are then included into the pdf\/\LaTeX\ document. The \pkg{auto-pst-pdf} package provides a wrapper to perform all of this automatically.
 
 The disadvantage with this method is that for every document compilation, \emph{every} graphic must be re-processed. The \pkg{pstool} package uses a different approach to allow each graphic to be processed only as-needed, speeding up and simplifying the typesetting of the main document.
 
 At present this package is designed solely as a replacement for \pkg{pst-pdf} in the r\^ole of supporting the \pkg{psfrag} package (which it loads) in pdf\/\LaTeX. 
 
-More flexible usage to provide a complete replacement for \pkg{pst-pdf} (e.g., support the \cs{begin{postscript}} environment) is planned for a possible future release. If you simply need to automatically convert plain \EPS\ files to \PDF, I recommend using the \pkg{epstopdf} package with the \pkgopt{update,prepend} package options. (The two packages should be completely compatible.)
+More flexible usage to provide a complete replacement for \pkg{pst-pdf} (e.g., supporting the \cs{begin\{postscript\}} environment) is planned for a later release. If you simply need to automatically convert plain \EPS\ files to \PDF, I recommend using the \pkg{epstopdf} package with the \pkgopt{update,prepend} package options (\pkg{epstopdf} and \pkg{pstool} should be completely compatible).
 
-\section{Processing modes}
+\section{Getting started}
 
 Load the package as usual; no package options are required by default, but there are a few useful options described later in section~\ref{pkgopt}. Note that you do not need to load \pkg{psfrag} separately.
 
 The generic command provided by this package is
 \begin{center}
-  \cmd\pstool\arg[graphicx options]\arg{filename}\arg{input definitions}
+  \cmd\pstool\ \arg[graphicx options] \arg{filename} \arg{input definitions}
 \end{center}
 It converts the graphic \<filename>|.eps| to \<filename>|.pdf| through a unique \DVI$\to$\PS$\to$\PDF\ process for each graphic, using the preamble of the main document. The resulting graphic is then inserted into the document, with optional \<graphicx options>. The third argument to \cmd\pstool\ allows arbitrary \<input definitions> (such as \cmd\psfrag\ directives) to be inserted before the figure as it is processed. 
 
-By default \cmd\pstool\ can be used in the following modes:
+The command \cmd\pstool\ can take an optional |*| or |!| suffix to change the behaviour of the command:
 \begin{description}
-\item[\cs{pstool}] Process the graphic \<filename> if no \PDF\ of the same name exists, or if the source \EPS\ file is \emph{newer} than the \PDF;
+\item[\cs{pstool}] Process the graphic \<filename>|.eps| if \<filename>|.pdf| does not already exist, or if the \EPS\ file is \emph{newer} than the \PDF;
 \item[\cs{pstool*}] Always process this figure; and,
 \item[\cs{pstool!}] Never process this figure.
 \end{description}
+The behaviour in these three cases can be overridden globally by the package option \pkgopt{process} as described in section~\ref{process}.
 
-It is useful to define higher-level commands with \cmd\pstool\ for including specific types of \EPS\ graphics that take advantage of \pkg{psfrag}. As an example, this package defines the following command, which also supports the |*| or |!| suffixes.
+It is useful to define higher-level commands based on \cmd\pstool\ for including specific types of \EPS\ graphics that take advantage of \pkg{psfrag}. As an example, this package defines the following command, which also supports the |*| or |!| suffixes described above.
 \begin{description}
 \item[{\cmd\psfragfig\arg[opts]\arg{filename}}] 
-This is the catch-all macro to support a wide range of graphics naming schemes. It insert an \EPS\ file named either \<filename>|.eps| or \<filename>|-psfrag.eps| (in order of preference), and uses \pkg{psfrag} definitions contained within either the file \<filename>|.tex| or \<filename>|-psfrag.tex|. 
+This is the catch-all macro to support a wide range of graphics naming schemes. It insert an \EPS\ file named either \<filename>|-psfrag.eps| or \<filename>|.eps| (in that order of preference), and uses \pkg{psfrag} definitions contained within either \<filename>|-psfrag.tex| or \<filename>|.tex|. 
 
-This command can be used to insert figure produced by the \textsc{Mathematica} package \pkg{MathPSfrag} or the \textsc{Matlab} package \pkg{matlabfrag}. \cmd\psfragfig\ also accepts an optional braced argument as shown next.
+This command can be used to insert figures produced by the \textsc{Mathematica} package \pkg{MathPSfrag} or the \textsc{Matlab} package \pkg{matlabfrag}. \cmd\psfragfig\ also accepts an optional braced argument as shown next.
 
 \item[{\cmd\psfragfig\arg[opts]\arg{filename}\arg{input definitions}}] 
-As above, but inserts the arbitrary code \<input definitions>, which will usually be used for defining new or overriding existing \pkg{psfrag} commands.
+As above, but inserts the arbitrary code \<input definitions>, which will usually be used to define new or override existing \pkg{psfrag} commands.
 \end{description}
 
 \section{Package options}
 \label{pkgopt}
 
 \subsection{Forcing/disabling graphics processing}
+\label{process}
 
 While the suffixes |*| and |!| can be used to force or disable (respectively) the processing of each individual graphic, sometimes we want to do this on a global level. The following package options  override \emph{all} \cmd\pstool\ (and related) macros: 
 \begin{description}
-\item[\pkgopt{process=auto}] This is the default mode as described in the previous section, in which graphics are only (re-)processed if the \EPS\ file is newer or the \PDF\ file does not exist;
-\item[\pkgopt{process=all}] All \cmd\pstool\ graphics are processed; and,
-\item[\pkgopt{process=none}] No \cmd\pstool\ graphics are processed.\footnote{If \pkg{pstool} is loaded in a \LaTeX\ document in \DVI\ mode, this is the option that is used since no external processing is required for these graphics.}
+\item[\pkgopt{process=auto}] This is the default mode as described in the previous section, in which graphics with suffixes are only (re-)processed if the \EPS\ file is newer or the \PDF\ file does not exist;
+\item[\pkgopt{process=all}] Suffixes are ignored and all \cmd\pstool\ graphics are processed;
+\item[\pkgopt{process=none}] Suffixes are ignored and no \cmd\pstool\ graphics are processed.\footnote{If \pkg{pstool} is loaded in a \LaTeX\ document in \DVI\ mode, this is the option that is used since no external processing is required for these graphics.}
 \end{description}
 
 Also note that it would be nice to detect the age of files other than the \EPS\ and \PDF\ graphics in order to affect the processing decisions. This is planned for a possible future release.
 
 \subsection{Cropping graphics}
-Graphics are cropped to the appropriate size with the \pkg{preview} package. This corresponds with the package option \pkgopt{crop=preview}, which is activated by default. 
+The default option \pkgopt{crop=preview} selects the \pkg{preview} package to crop graphics to the appropriate size for each auxiliary process.
 
-When an inserted label protrudes from the natural bounding box of the figure, or when the original bounding box of the figure is wrong, the \pkg{preview} package will not always produce a good result (with parts of the graphic trimmed off the edge). A robust method to solve this problem is to use the \pkg{pdfcrop} program instead.%
-\footnote{\pkg{pdfcrop} requires a Perl installation under Windows, freely available from \url{http://www.activestate.com/Products/activeperl/index.plex}} This can be activated in \pkg{pstool} with the \pkgopt{crop=pdfcrop} package option. In the future I plan to also support the \pkg{epstool} method of robust graphic cropping.
+However, when an inserted label protrudes from the natural bounding box of the figure, or when the original bounding box of the figure is wrong, the \pkg{preview} package will not always produce a good result (with parts of the graphic trimmed off the edge). A robust method to solve this problem is to use the \pkg{pdfcrop} program instead.%
+\footnote{\pkg{pdfcrop} requires a Perl installation under Windows, freely available from \url{http://www.activestate.com/Products/activeperl/index.plex}} This can be activated in \pkg{pstool} with the \pkgopt{crop=pdfcrop} package option. 
+
+In the future I plan to also support  \pkg{epstool} for doing the same thing.
 
 \subsection{Temporary files \& cleanup}
-Each figure that is processed spawns an auxiliary \LaTeX\ compilation through \DVI$\to$\PS$\to$\PDF. This process is named after the name of the figure with a suffix; the default is \pkgopt{suffix=\{-pstool\}}. All of these suffixed files are ``temporary'' in that they may be deleted once they are no longer needed.
+Each figure that is processed spawns an auxiliary \LaTeX\ compilation through \DVI$\to$\PS$\to$\PDF. This process is named after the name of the figure with an appended string suffix; the default is \pkgopt{suffix=\{-pstool\}}. All of these suffixed files are ``temporary'' in that they may be deleted once they are no longer needed.
 
 As an example, if the figure is called |ex.eps|, the files that are created are |ex-pstool.tex|, |ex-pstool.dvi|, \dots. The \pkgopt{cleanup} package option declares via a list of filename suffixes which temporary files are to be deleted after processing.
 
@@ -543,13 +551,13 @@ These three package options correspond to the \LaTeX\ command line options \text
 
 \subsection{The \cmd\EndPreamble\ command}
 
-At present, \pkg{pstool} scans the preamble of the main document by redefining |\begin{document}|, but this is rather fragile  because many classes and packages do their own redefined which overwrites \pkg{pstool}'s attempt. In this case, place the command\par
+At present, \pkg{pstool} scans the preamble of the main document by redefining |\begin{document}|, but this is rather fragile  because many classes and packages do their own redefining which overwrites \pkg{pstool}'s attempt. In this case, place the command\par
 {\centering|\EndPreamble|\par}\noindent
 where-ever you'd like the preamble in the auxiliary processing to end. This is also handy to bypass anything in the preamble that will never be required for the figures but which will slow down or otherwise conflict with the auxiliary processing.
 
 \subsection{Cross-reference limitations}
 
-The initial release of this package does not support cross-references within the \pkg{psfrag} labels of the included graphics. (If, say, you wish to refer to an equation number within a figure.) A future release of \pkg{pstool} may fix this limitation.
+The initial release of this package does not support cross-references within the \pkg{psfrag} labels of the included graphics. (If, say, you wish to refer to an equation number within a figure.) A future release of \pkg{pstool} will hopefully lift this limitation.
 
 \subsection{A note on file paths}
 
@@ -568,6 +576,8 @@ The most recent publicly released version of \pkg{pstool} is available at \texts
 \centerline{\url{http://tug.ctan.org/pkg/pstool/}}\\ 
 Historical and developmental versions are available at GitHub:\\ \centerline{\url{http://github.com/wspr/pstool/}}\\
 While general feedback at \url{wspr81@gmail.com} is welcomed, specific bugs should be reported through the bug tracker at FogBugz: \url{https://wspr.fogbugz.com/} (click `\textsc{tasks}: Enter a New Case').
+
+\subsection{Licence}
 
 This package is freely modifiable and distributable under the terms and conditions of the \LaTeX\ Project Public Licence, version 1.3c or greater (your choice). The latest version of
 this license is available at: \url{http://www.latex-project.org/lppl.txt}. This work is maintained by \textsc{Will Robertson}.
