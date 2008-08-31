@@ -2,7 +2,7 @@
 \begin{filecontents*}{README.txt}
 __________________
 The pstool package
-v0.8
+v1.0
 
 A package like "pst-pdf" for processing PostScript graphics 
 with psfrag labels within pdfLaTeX documets. The difference 
@@ -10,22 +10,19 @@ with this package is that every graphic is compiled individually,
 drastically speeding up compilation time when only a single
 figure needs re-processing.
 
-Please read pstool.pdf for further information.
-
 Running `latex` on pstool.tex will produce the files
   pstool.ins, pstool.sty, and README.txt,
 and compile the PDF documentation. 
 
 Executing `tex pstool.ins` produces the files above 
-except pstool.ins (and the PDF file, obviously). Don't be 
-fooled by the name; it's not a docscript installer.
+except pstool.ins (and the PDF file, obviously).
 
 Will Robertson & Zebb Prime
 Copyright 2008
 \end{filecontents*}
 
 \begin{filecontents}{pstool.sty}
-\ProvidesPackage{pstool}[2008/08/28 v0.8
+\ProvidesPackage{pstool}[2008/08/31 v1.0
   Wrapper for processing PostScript/psfrag figures]
 
 % External packages
@@ -404,6 +401,9 @@ Copyright 2008
 \csname@@end\endcsname
 \end{filecontents*}
 
+
+
+
 \makeatletter
 \documentclass{article}
 
@@ -411,7 +411,6 @@ Copyright 2008
 
 \usepackage{bigfoot,xcolor}
 \usepackage[colorlinks,linktocpage]{hyperref}
-
 \usepackage{gmdoc}
 \usepackage{gmverb}
 \dekclubs
@@ -438,7 +437,6 @@ Copyright 2008
 \def\DVI{\textsc{dvi}}
 \def\EPS{\textsc{eps}}
 
-\usepackage{amsmath}
 \usepackage{pstool}
 \usepackage[T1]{fontenc}
 \usepackage{microtype}
@@ -471,7 +469,7 @@ This package defines the \cmd\psfragfig\ user command for including \EPS\ files 
 
 While directly producing \PDF\ output with pdf\/\LaTeX\ is a great improvement in many ways over the `old method' of \DVI$\to$\PS$\to$\PDF, it loses the ability to interface with a generic PostScript workflow, used to great effect in numerous packages, most notably \pkg{PSTricks} and \pkg{psfrag}.
 
-Until now, the best way to use these packages while running pdf\/\LaTeX\ has been to use the \pkg{pst-pdf} package, which processes the entire document through a filter, sending the relevant PostScript environments (only) through a single pass of \LaTeX\ producing \DVI$\to$\PS$\to$\PDF. The resulting \PDF\ versions of each graphic are then included into the pdf\/\LaTeX\ document. The \pkg{auto-pst-pdf} package provides a wrapper to perform all of this automatically.
+Until now, the best way to use these packages while running pdf\/\LaTeX\ has been to use the \pkg{pst-pdf} package, which processes the entire document through a filter, sending the relevant PostScript environments (only) through a single pass of \LaTeX\ producing \DVI$\to$\PS$\to$\PDF. The resulting \PDF\ versions of each graphic are then included into the pdf\/\LaTeX\ document in the next compilation. The \pkg{auto-pst-pdf} package provides a wrapper to perform all of this automatically.
 
 The disadvantage with this method is that for every document compilation, \emph{every} graphic must be re-processed. The \pkg{pstool} package uses a different approach to allow each graphic to be processed only as-needed, speeding up and simplifying the typesetting of the main document.
 
@@ -500,7 +498,7 @@ The behaviour in these three cases can be overridden globally by the package opt
 It is useful to define higher-level commands based on \cmd\pstool\ for including specific types of \EPS\ graphics that take advantage of \pkg{psfrag}. As an example, this package defines the following command, which also supports the |*| or |!| suffixes described above.
 \begin{description}
 \item[{\cmd\psfragfig\arg[opts]\arg{filename}}] 
-This is the catch-all macro to support a wide range of graphics naming schemes. It insert an \EPS\ file named either \<filename>|-psfrag.eps| or \<filename>|.eps| (in that order of preference), and uses \pkg{psfrag} definitions contained within either \<filename>|-psfrag.tex| or \<filename>|.tex|. 
+This is the catch-all macro to support a wide range of graphics naming schemes. It inserts an \EPS\ file named either \<filename>|-psfrag.eps| or \<filename>|.eps| (in that order of preference), and uses \pkg{psfrag} definitions contained within either \<filename>|-psfrag.tex| or \<filename>|.tex|. 
 
 This command can be used to insert figures produced by the \textsc{Mathematica} package \pkg{MathPSfrag} or the \textsc{Matlab} package \pkg{matlabfrag}. \cmd\psfragfig\ also accepts an optional braced argument as shown next.
 
