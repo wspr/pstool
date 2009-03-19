@@ -78,6 +78,16 @@ Copyright 2008
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
 \ExecuteOptionsX{suffix={-pstool}}
 
+\DeclareOptionX{latex-options}{\def\pstool@latex@opts{#1}}
+\DeclareOptionX{dvips-options}{\def\pstool@dvips@opts{#1}}
+\DeclareOptionX{ps2pdf-options}{\def\pstool@pspdf@opts{#1}}
+\DeclareOptionX{pdfcrop-options}{\def\pstool@pdfcrop@opts{#1}}
+\ExecuteOptionsX{%
+  latex-options={},
+  dvips-options={},
+  ps2pdf-options={},
+  pdfcrop-options={}}
+
 \ifshellescape\else
   \ExecuteOptionsX{process=none}
   \PackageWarning{pstool}{^^J\space\space%
@@ -130,8 +140,11 @@ Copyright 2008
   \fi}
 
 % Edit this definition to print something else when graphic processing fails.
-\def\pstool@error{\fbox{\parbox{0.8\linewidth}{\color{red}\raggedright\ttfamily\scshape\small
-  An error occured processing graphic \upshape`\ip@directpath\ip@lastelement'}}}
+\def\pstool@error{%
+  \fbox{%
+    \parbox{0.8\linewidth}{%
+      \color{red}\raggedright\ttfamily\scshape\small
+      An error occured processing graphic \upshape`\ip@directpath\ip@lastelement'}}}
 
 \def\pstool@abort#1\pstool@endprocess{\pstool@error\@gobble}
 \let\pstool@endprocess\@firstofone
@@ -267,18 +280,19 @@ Copyright 2008
       -output-format=dvi
       -output-directory="\ip@directpath"
       -interaction=\pstool@mode\space
+      \pstool@latex@opts\space
           "\pstool@jobname.tex"}%
-% Execute dvips in quiet mode if latex is run in (non/error)stop mode:
+% Execute dvips in quiet mode if latex is not run in (non/error)stop mode:
   \pstool@exe{dvips}{\ip@directpath}{%
-    dvips \if@pstool@verbose@\else -q \fi -Ppdf "\pstool@jobname.dvi"}%
+    dvips \if@pstool@verbose@\else -q \fi -Ppdf \pstool@dvips@opts\space "\pstool@jobname.dvi"}%
   \if@pstool@pdfcrop@
     \pstool@exe{ps2pdf}{\ip@directpath}{%
-      ps2pdf "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
+      ps2pdf \pstool@pspdf@opts\space "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
     \pstool@exe{pdfcrop}{\ip@directpath}{%
-      pdfcrop "\pstool@jobname.pdf" "\ip@lastelement.pdf"}%
+      pdfcrop \pstool@pdfcrop@opts\space "\pstool@jobname.pdf" "\ip@lastelement.pdf"}%
   \else
     \pstool@exe{ps2pdf}{\ip@directpath}{%
-      ps2pdf "\pstool@jobname.ps" "\ip@lastelement.pdf"}%
+      ps2pdf \pstool@pspdf@opts\space "\pstool@jobname.ps" "\ip@lastelement.pdf"}%
   \fi
   \pstool@echo{^^J=== pstool: end processing ===^^J}%
   \pstool@endprocess{%
@@ -469,9 +483,9 @@ This package defines the \cmd\psfragfig\ user command for including \EPS\ files 
 
 While directly producing \PDF\ output with pdf\/\LaTeX\ is a great improvement in many ways over the `old method' of \DVI$\to$\PS$\to$\PDF, it loses the ability to interface with a generic PostScript workflow, used to great effect in numerous packages, most notably \pkg{PSTricks} and \pkg{psfrag}.
 
-Until now, the best way to use these packages while running pdf\/\LaTeX\ has been to use the \pkg{pst-pdf} package, which processes the entire document through a filter, sending the relevant PostScript environments (only) through a single pass of \LaTeX\ producing \DVI$\to$\PS$\to$\PDF. The resulting \PDF\ versions of each graphic are then included into the pdf\/\LaTeX\ document in the next compilation. The \pkg{auto-pst-pdf} package provides a wrapper to perform all of this automatically.
+Until now, the best way to use these packages while running pdf\/\LaTeX\ has been to use the \pkg{pst-pdf} package, which processes the entire document through a filter, sending the relevant PostScript environments (only) through a single pass of \LaTeX\ producing \DVI$\to$\PS$\to$\PDF. The resulting \PDF\ versions of each graphic are then included into the pdf\/\LaTeX\ document in a subsequent compilation. The \pkg{auto-pst-pdf} package provides a wrapper to perform all of this automatically.
 
-The disadvantage with this method is that for every document compilation, \emph{every} graphic must be re-processed. The \pkg{pstool} package uses a different approach to allow each graphic to be processed only as-needed, speeding up and simplifying the typesetting of the main document.
+The disadvantage with this method is that for every document compilation, \emph{every} graphic must be re-processed. The \pkg{pstool} package uses a different approach to allow each graphic to be processed only as needed, speeding up and simplifying the typesetting of the main document.
 
 At present this package is designed solely as a replacement for \pkg{pst-pdf} in the r\^ole of supporting the \pkg{psfrag} package (which it loads) in pdf\/\LaTeX. 
 
@@ -545,13 +559,25 @@ Each graphic echoes the output of its auxiliary process to the console window; u
 \end{description}
 These three package options correspond to the \LaTeX\ command line options \texttt{-interaction=batchmode}, \texttt{=nonstopmode}, and \texttt{=errorstopmode}, respectively. When \pkgopt{mode=batch} is activated, then \pkg{dvips} is also run in `quiet mode'.
 
+\subsection{Auxiliary processing command line options}
+The command line options passed to each program of the auxiliary processing can be changed with the following package options:
+\begin{description}
+\item[\pkgopt{latex-options}] ;
+\item[\pkgopt{dvips-options}] ;
+\item[\pkgopt{ps2pdf-options}] ; and,
+\item[\pkgopt{pdfcrop-options}] .
+\end{description}
+For the most part these will be unnecessary, although passing the correct options to |ps2pdf| can sometimes be a little obscure. For example, I use the following for generating figures in my thesis:\par
+{\centering|ps2pdf-options={-dCompatibilityLevel=1.4 -dPDFSETTINGS=/prepress}|\par}
+I believe this incantation forces fonts to be embedded within the individual figure files, without which some printers and \textsc{pdf} viewers have trouble with the textual labels.
+
 \section{Miscellaneous details}
 
 \subsection{The \cmd\EndPreamble\ command}
 
 At present, \pkg{pstool} scans the preamble of the main document by redefining |\begin{document}|, but this is rather fragile  because many classes and packages do their own redefining which overwrites \pkg{pstool}'s attempt. In this case, place the command\par
 {\centering|\EndPreamble|\par}\noindent
-where-ever you'd like the preamble in the auxiliary processing to end. This is also handy to bypass anything in the preamble that will never be required for the figures but which will slow down or otherwise conflict with the auxiliary processing.
+where-ever you'd like the preamble in the auxiliary processing to end (although is must be placed before |\begin{document}| for obvious reasons). This is also handy to bypass anything in the preamble that will never be required for the figures but which will slow down or otherwise conflict with the auxiliary processing.
 
 \subsection{Cross-reference limitations}
 
