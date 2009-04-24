@@ -1,6 +1,6 @@
 __________________
 The pstool package
-v1.0
+v1.1
 
 A package like "pst-pdf" for processing PostScript graphics
 with psfrag labels within pdfLaTeX documets. The difference

@@ -2,7 +2,7 @@
 \begin{filecontents*}{README.txt}
 __________________
 The pstool package
-v1.0
+v1.1
 
 A package like "pst-pdf" for processing PostScript graphics 
 with psfrag labels within pdfLaTeX documets. The difference 
@@ -22,7 +22,7 @@ Copyright 2008
 \end{filecontents*}
 
 \begin{filecontents}{pstool.sty}
-\ProvidesPackage{pstool}[2008/08/31 v1.0
+\ProvidesPackage{pstool}[2009/04/24 v1.1
   Wrapper for processing PostScript/psfrag figures]
 
 % External packages
@@ -78,10 +78,16 @@ Copyright 2008
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
 \ExecuteOptionsX{suffix={-pstool}}
 
+% \HideAllDefining
+% \Define*{latex-options}
+% \Define*{dvips-options}
+% \Define*{ps2pdf-options}
+% \Define*{pdfcrop-options}
 \DeclareOptionX{latex-options}{\def\pstool@latex@opts{#1}}
 \DeclareOptionX{dvips-options}{\def\pstool@dvips@opts{#1}}
 \DeclareOptionX{ps2pdf-options}{\def\pstool@pspdf@opts{#1}}
 \DeclareOptionX{pdfcrop-options}{\def\pstool@pdfcrop@opts{#1}}
+% \ResumeAllDefining
 \ExecuteOptionsX{%
   latex-options={},
   dvips-options={},
@@ -413,7 +419,7 @@ Copyright 2008
   \fi
 }
 
-% Break out the separate function in order to expand "\pstool@tex" before writing it.
+% Break out the separate function in order to expand |\pstool@tex| before writing it.
 \newcommand\pstool@@@psfragfig[3]{%
   \pstool#2{\pstool@eps}{%
     \csname @input\endcsname{#1}%
