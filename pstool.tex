@@ -27,12 +27,11 @@ Copyright 2008
 
 % External packages
 \RequirePackage{%
-  catchfile,color,ifpdf,ifplatform,graphicx,psfrag,suffix,xkeyval}
+  catchfile,color,ifpdf,ifplatform,
+  graphicx,psfrag,suffix,xkeyval}
 \RequirePackage{inversepath}[2008/07/31 v0.2]
 
 % Allocations
-\newif\if@pstool@always@
-\newif\if@pstool@never@
 \newif\if@pstool@pdfcrop@
 \newif\if@pstool@verbose@
 \newwrite\pstool@out
@@ -43,7 +42,8 @@ Copyright 2008
 
 % \subsection{Package options}
 
-\define@choicekey*{pstool.sty}{crop}[\@tempa\@tempb]{preview,pdfcrop}{%
+\define@choicekey*{pstool.sty}{crop}
+    [\@tempa\@tempb]{preview,pdfcrop}{%
   \ifcase\@tempb\relax
     \@pstool@pdfcrop@false
   \or
@@ -52,14 +52,9 @@ Copyright 2008
   \fi
 }
 
-\define@choicekey*{pstool.sty}{process}[\@tempa\@tempb]{all,none,auto}{%
-  \ifcase\@tempb\relax
-    \@pstool@always@true
-  \or
-    \@pstool@never@true
-  \or
-  \fi
-}
+\define@choicekey*{pstool.sty}{process}
+    [\@tempa\pstool@process@choice]{all,none,auto}{}
+\ExecuteOptionsX{process=auto}
 
 \define@choicekey*{pstool.sty}{mode}
   [\@tempa\@tempb]{errorstop,nonstop,batch}{%
@@ -109,7 +104,7 @@ Copyright 2008
 % \section{Macros}
 
 % Used to echo information to the console output.
-% Can't use \typeout because it's asynchronous with
+% Can't use |\typeout| because it's asynchronous with
 % any |\immediate\write18| processes (for some reason).
 \def\pstool@echo#1{%
   \if@pstool@verbose@
@@ -262,21 +257,21 @@ Copyright 2008
   }}
 
 % \section{User commands}
-%  Finally, define \cmd\pstool\ as appropriate for the mode:
+%  Finally, define \cmd\pstool\ as appropriate for the mode: (|all|, |none|, |auto|, respectively)
 \ifpdf
-  \if@pstool@always@
+  \ifcase\pstool@process@choice
     \let\pstool\pstool@alwaysprocess
     \WithSuffix\def\pstool!{\pstool@alwaysprocess}
     \WithSuffix\def\pstool*{\pstool@alwaysprocess}
-  \else\if@pstool@never@
+  \or
     \let\pstool\pstool@neverprocess
     \WithSuffix\def\pstool!{\pstool@neverprocess}
     \WithSuffix\def\pstool*{\pstool@neverprocess}
-  \else
+  \or
     \let\pstool\pstool@maybeprocess
     \WithSuffix\def\pstool!{\pstool@neverprocess}
     \WithSuffix\def\pstool*{\pstool@alwaysprocess}
-  \fi\fi
+  \fi
 \else
   \let\pstool\pstool@neverprocess
   \WithSuffix\def\pstool!{\pstool@neverprocess}
@@ -290,8 +285,10 @@ Copyright 2008
 
 % And this is the main macro.
 \newcommand\pstool@process[2]{%
-  \pstool@echo@verbose{^^J^^J=== pstool: begin processing ===}%
-  \pstool@write@processfile{#1}{\ip@directpath\ip@lastelement}{#2}%
+  \pstool@echo@verbose{%
+      ^^J^^J=== pstool: begin processing ===}%
+  \pstool@write@processfile{#1}
+      {\ip@directpath\ip@lastelement}{#2}%
   \pstool@exe{auxiliary process: \ip@lastelement\space}
     {./}{latex
       -shell-escape
@@ -302,19 +299,25 @@ Copyright 2008
           "\pstool@jobname.tex"}%
 % Execute dvips in quiet mode if latex is not run in (non/error)stop mode:
   \pstool@exe{dvips}{\ip@directpath}{%
-    dvips \if@pstool@verbose@\else -q \fi -Ppdf \pstool@dvips@opts\space "\pstool@jobname.dvi"}%
+    dvips \if@pstool@verbose@\else -q \fi -Ppdf 
+        \pstool@dvips@opts\space "\pstool@jobname.dvi"}%
   \if@pstool@pdfcrop@
     \pstool@exe{ps2pdf}{\ip@directpath}{%
-      ps2pdf \pstool@pspdf@opts\space "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
+      ps2pdf \pstool@pspdf@opts\space
+          "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
     \pstool@exe{pdfcrop}{\ip@directpath}{%
-      pdfcrop \pstool@pdfcrop@opts\space "\pstool@jobname.pdf" "\ip@lastelement.pdf"}%
+      pdfcrop \pstool@pdfcrop@opts\space
+          "\pstool@jobname.pdf" "\ip@lastelement.pdf"}%
   \else
     \pstool@exe{ps2pdf}{\ip@directpath}{%
-      ps2pdf \pstool@pspdf@opts\space "\pstool@jobname.ps" "\ip@lastelement.pdf"}%
+      ps2pdf \pstool@pspdf@opts\space
+          "\pstool@jobname.ps" "\ip@lastelement.pdf"}%
   \fi
   \pstool@endprocess{%
     \pstool@cleanup
-    \pstool@includegraphics[#1]{\ip@directpath\ip@lastelement}}%
+    \pstool@includegraphics[#1]{%
+      \ip@directpath\ip@lastelement}%
+  }%
   \pstool@echo@verbose{^^J=== pstool: end processing ===^^J}%
 }
 
@@ -409,7 +412,8 @@ Copyright 2008
     \edef\pstool@tex{#2-psfrag.tex}%
     \OnlyIfFileExists{#2.tex}{%
       \PackageWarning{pstool}{%
-        File "#2.tex" exists that may contain macros for "\pstool@eps.eps"^^J%
+        File "#2.tex" exists that may contain macros
+        for "\pstool@eps.eps"^^J%
         But file "#2-psfrag.tex" is being used instead.%
       }%
     }%
@@ -427,7 +431,8 @@ Copyright 2008
   \ifx\pstool@tex\@empty
     \pstool#3[#1]{\pstool@eps}{#4}%
   \else
-    \expandafter\pstool@@@psfragfig\expandafter{\pstool@tex}{#3[#1]}{#4}%
+    \expandafter\pstool@@@psfragfig
+      \expandafter{\pstool@tex}{#3[#1]}{#4}%
   \fi
 }
 
