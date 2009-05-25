@@ -2,7 +2,7 @@
 \begin{filecontents*}{README.txt}
 __________________
 The pstool package
-v1.2
+v1.2a
 
 A package like "pst-pdf" for processing PostScript graphics 
 with psfrag labels within pdfLaTeX documets. The difference 
@@ -22,7 +22,7 @@ Copyright 2008
 \end{filecontents*}
 
 \begin{filecontents}{pstool.sty}
-\ProvidesPackage{pstool}[2009/05/24 v1.2
+\ProvidesPackage{pstool}[2009/05/25 v1.2a
   Wrapper for processing PostScript/psfrag figures]
 
 % External packages
@@ -94,7 +94,7 @@ Copyright 2008
   ps2pdf-options={},
   pdfcrop-options={}}
 
-\ifpdf\else
+\ifpdf
   \ifshellescape\else
     \ExecuteOptionsX{process=none}
     \PackageWarning{pstool}{^^J\space\space%
@@ -322,10 +322,9 @@ Copyright 2008
 \def\pstool@write@processfile#1#2#3{%
     \immediate\openout\pstool@out #2\pstool@suffix.tex\relax
     \immediate\write\pstool@out{%
-      \noexpand\pdfoutput=0^^J% force DVI mode if not already
-%
 % Input the main document; redefine the document environment so only the preamble is read:
       \unexpanded{%
+        \pdfoutput=0^^J% force DVI mode if not already
         \let\origdocument\document^^J%
         \let\EndPreamble\endinput^^J%
         \def\document{\endgroup\endinput}^^J}%
