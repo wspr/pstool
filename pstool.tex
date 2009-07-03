@@ -477,13 +477,16 @@ Copyright 2008
 
 \usepackage[rm,medium]{titlesec}
 
-\usepackage{bigfoot,xcolor}
+\usepackage{xcolor}
 \usepackage[colorlinks,linktocpage]{hyperref}
 \usepackage{gmdoc}
 \usepackage{gmverb}
 \dekclubs
 \stanzaskip=\bigskipamount 
 \CodeSpacesGrey
+
+\usepackage{enumitem}
+\setlist{noitemsep}
 
 \usepackage{tocloft,varwidth}
 \setcounter{tocdepth}{1}
@@ -549,10 +552,10 @@ More flexible usage to provide a complete replacement for \pkg{pst-pdf} (e.g., s
 
 Load the package as usual; no package options are required by default, but there are a few useful options described later in section~\ref{pkgopt}. Note that you do not need to load \pkg{psfrag} separately. You also do not need to load \pkg{graphicx} separately, but if you do so, ensure that you do \emph{not} include driver information (such as |[pdftex]|); this will play havoc with \pkg{pstool}'s automatic processing stage.
 
-The generic command provided by this package is
-\begin{center}
+The generic command provided by this package is\par
+{\centering
   \cmd\pstool\ \arg[graphicx options] \arg{filename} \arg{input definitions}
-\end{center}
+\par}
 It converts the graphic \<filename>|.eps| to \<filename>|.pdf| through a unique \DVI$\to$\PS$\to$\PDF\ process for each graphic, using the preamble of the main document. The resulting graphic is then inserted into the document, with optional \<graphicx options>. Note that these optional arguments take effect in the \emph{processing stage}; if you change the \<options>, you must re-process the figure. The third argument to \cmd\pstool\ allows arbitrary \<input definitions> (such as \cmd\psfrag\ directives) to be inserted before the figure as it is processed. 
 
 The command \cmd\pstool\ can take an optional |*| or |!| suffix to change the behaviour of the command:
@@ -567,9 +570,9 @@ It is useful to define higher-level commands based on \cmd\pstool\ for including
 \begin{description}
 \item[{\cmd\psfragfig\arg[opts]\arg{filename}}] 
 This is the catch-all macro to support a wide range of graphics naming schemes. It inserts an \EPS\ file named either \<filename>|-psfrag.eps| or \<filename>|.eps| (in that order of preference), and uses \pkg{psfrag} definitions contained within either \<filename>|-psfrag.tex| or \<filename>|.tex|. 
-
-This command can be used to insert figures produced by the \textsc{Mathematica} package \pkg{MathPSfrag} or the \textsc{Matlab} package \pkg{matlabfrag}. \cmd\psfragfig\ also accepts an optional braced argument as shown next.
-
+\end{description}
+This command can be used to insert figures produced by the \textsc{Mathematica} package \pkg{MathPSfrag} or the \textsc{Matlab} package \pkg{matlabfrag}. \cmd\psfragfig\ also accepts an optional braced argument:
+\begin{description}
 \item[{\cmd\psfragfig\arg[opts]\arg{filename}\arg{input definitions}}] 
 As above, but inserts the arbitrary code \<input definitions>, which will usually be used to define new or override existing \pkg{psfrag} commands.
 \end{description}
@@ -580,22 +583,18 @@ As above, but inserts the arbitrary code \<input definitions>, which will usuall
 \subsection{Forcing/disabling graphics processing}
 \label{process}
 
-While the suffixes |*| and |!| can be used to force or disable (respectively) the processing of each individual graphic, sometimes we want to do this on a global level. The following package options  override \emph{all} \cmd\pstool\ (and related) macros: 
+While the suffixes |*| and |!| can be used to force or disable (respectively) the processing of each individual graphic, sometimes we want to do this on a global level. The following package options  override \emph{all} \pkg{pstool}  macros: 
 \begin{description}
 \item[\pkgopt{process=auto}] This is the default mode as described in the previous section, in which graphics with suffixes are only (re-)processed if the \EPS\ file is newer or the \PDF\ file does not exist;
 \item[\pkgopt{process=all}] Suffixes are ignored and all \cmd\pstool\ graphics are processed;
 \item[\pkgopt{process=none}] Suffixes are ignored and no \cmd\pstool\ graphics are processed.\footnote{If \pkg{pstool} is loaded in a \LaTeX\ document in \DVI\ mode, this is the option that is used since no external processing is required for these graphics.}
 \end{description}
 
-Also note that it would be nice to detect the age of files other than the \EPS\ and \PDF\ graphics in order to affect the processing decisions. This is planned for a possible future release.
-
 \subsection{Cropping graphics}
 The default option \pkgopt{crop=preview} selects the \pkg{preview} package to crop graphics to the appropriate size for each auxiliary process.
 
 However, when an inserted label protrudes from the natural bounding box of the figure, or when the original bounding box of the figure is wrong, the \pkg{preview} package will not always produce a good result (with parts of the graphic trimmed off the edge). A robust method to solve this problem is to use the \pkg{pdfcrop} program instead.%
 \footnote{\pkg{pdfcrop} requires a Perl installation under Windows, freely available from \url{http://www.activestate.com/Products/activeperl/index.plex}} This can be activated in \pkg{pstool} with the \pkgopt{crop=pdfcrop} package option. 
-
-In the future I plan to also support  \pkg{epstool} for doing the same thing.
 
 \subsection{Temporary files \& cleanup}
 Each figure that is processed spawns an auxiliary \LaTeX\ compilation through \DVI$\to$\PS$\to$\PDF. This process is named after the name of the figure with an appended string suffix; the default is \pkgopt{suffix=\{-pstool\}}. All of these suffixed files are ``temporary'' in that they may be deleted once they are no longer needed.
@@ -616,10 +615,10 @@ These three package options correspond to the \LaTeX\ command line options \text
 \subsection{Auxiliary processing command line options}
 The command line options passed to each program of the auxiliary processing can be changed with the following package options:
 \begin{description}
-\item[\pkgopt{latex-options}] ;
-\item[\pkgopt{dvips-options}] ;
-\item[\pkgopt{ps2pdf-options}] ; and,
-\item[\pkgopt{pdfcrop-options}] .
+\item[\pkgopt{latex-options=...}];
+\item[\pkgopt{dvips-options=...}];
+\item[\pkgopt{ps2pdf-options=...}]; and,
+\item[\pkgopt{pdfcrop-options=...}].
 \end{description}
 For the most part these will be unnecessary, although passing the correct options to |ps2pdf| can sometimes be a little obscure. For example, I use the following for generating figures in my thesis:\par
 {\centering|ps2pdf-options={-dCompatibilityLevel=1.4 -dPDFSETTINGS=/prepress}|\par}
@@ -635,7 +634,7 @@ where-ever you'd like the preamble in the auxiliary processing to end (although 
 
 \subsection{Cross-reference limitations}
 
-The initial release of this package does not support cross-references within the \pkg{psfrag} labels of the included graphics. (If, say, you wish to refer to an equation number within a figure.) A future release of \pkg{pstool} will hopefully lift this limitation.
+The initial release of this package does not support cross-references within the \pkg{psfrag} labels of the included graphics. (If, say, you wish to refer to an equation number or a citation within a figure.)
 
 \subsection{A note on file paths}
 
@@ -647,18 +646,16 @@ One problem that \pkg{pstool} does not (currently) solve on its own is the inclu
 |openout_any=a pdflatex ...|
 \item Create a symbolic link in the working directory to a point higher in the path: |ln -s ../../PhD ./PhD|, for example, and then refer to the graphics through this symbolic link.
 \end{enumerate}
-I hope to directly solve this problem in the future by using a caching folder for the auxiliary processing in such cases.
 
 \section{Package information}
 The most recent publicly released version of \pkg{pstool} is available at \textsc{CTAN}:\\
 \centerline{\url{http://tug.ctan.org/pkg/pstool/}}\\ 
 Historical and developmental versions are available at GitHub:\\ \centerline{\url{http://github.com/wspr/pstool/}}\\
-While general feedback at \url{wspr81@gmail.com} is welcomed, specific bugs should be reported through the bug tracker at FogBugz: \url{https://wspr.fogbugz.com/} (click `\textsc{tasks}: Enter a New Case').
+While general feedback at \url{wspr81@gmail.com} is welcomed, specific bugs should be reported through the issue tracker at GitHub: \url{http://github.com/wspr/pstool/issues}.
 
 \subsection{Licence}
 
-This package is freely modifiable and distributable under the terms and conditions of the \LaTeX\ Project Public Licence, version 1.3c or greater (your choice). The latest version of
-this license is available at: \url{http://www.latex-project.org/lppl.txt}. This work is maintained by \textsc{Will Robertson}.
+This package is freely modifiable and distributable under the terms and conditions of the \LaTeX\ Project Public Licence, version 1.3c or greater (your choice).\footnote{\url{http://www.latex-project.org/lppl.txt}} This work consists of the files |pstool.tex| and the derived files |pstool.sty|, |pstool.ins|, and |pstool.pdf|. This work is maintained by \textsc{Will Robertson}.
 
 {\addtocontents{toc}{\protect\end{varwidth}\protect\hfill}}
 {\addtocontents{toc}{\protect\begin{varwidth}[t]{\protect\tocwidthB\protect\linewidth}}}
