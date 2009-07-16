@@ -28,7 +28,7 @@ Copyright 2008
 % External packages
 \RequirePackage{%
   catchfile,color,ifpdf,ifplatform,
-  graphicx,psfrag,suffix,xkeyval}
+  graphicx,pdftexcmds,psfrag,suffix,xkeyval}
 \RequirePackage{inversepath}[2008/07/31 v0.2]
 
 % Allocations
@@ -188,19 +188,9 @@ Copyright 2008
 \def\pstool@statusfail{\par }% what results when \TeX\ reads an empty file
 
 % \subsection{File age detection}
-% Use |ls| (or |dir|) to detect if the EPS is newer than the PDF.
 \def\pstool@IfnewerEPS{%
-  \edef\pstool@filenames{\ip@lastelement.eps\space \ip@lastelement.pdf\space}%
-  \immediate\write18{%
-    cd "\ip@directpath"\pstool@cmdsep
-    \ifwindows
-      dir /T:W /B /O-D "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
-    \else
-      ls -t "\ip@lastelement.eps" "\ip@lastelement.pdf" > \pstool@statusfile
-    \fi
-  }%
-  \pstool@retrievestatus{\ip@directpath}%
-  \ifx\pstool@status\pstool@filenames
+  \ifnum\pdf@strcmp{\pdf@filemoddate{\ip@directpath\pstool@filestub.pdf}}
+                   {\pdf@filemoddate{\ip@directpath\pstool@filestub.eps}} < \z@
     \expandafter\@firstoftwo
   \else
     \expandafter\@secondoftwo
