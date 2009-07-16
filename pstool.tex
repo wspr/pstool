@@ -149,7 +149,7 @@ Copyright 2008
   \fbox{%
     \parbox{0.8\linewidth}{%
       \color{red}\raggedright\ttfamily\scshape\small
-      An error occured processing graphic \upshape`\ip@directpath\ip@lastelement'}}}
+      An error occured processing graphic \upshape`\ip@directpath\pstool@filestub'}}}
 
 \def\pstool@abort#1\pstool@endprocess{\pstool@error\@gobble}
 \let\pstool@endprocess\@firstofone
@@ -205,7 +205,7 @@ Copyright 2008
     \def\ip@directpath{./}%
   \fi
 % Strip off a possible wayward |.eps| suffix.
-  \edef\ip@lastelement{%
+  \edef\pstool@filestub{%
     \expandafter\pstool@stripEPS\ip@lastelement.eps\@nil
   }%
 }
@@ -270,16 +270,16 @@ Copyright 2008
 
 % \section{The figure processing}
 
-% \cmd\ip@lastelement\ is the filename of the figure stripped of its path (if any)
-\def\pstool@jobname{\ip@lastelement\pstool@suffix}
+% \cmd\pstool@filestub\ is the filename of the figure stripped of its path (if any)
+\def\pstool@jobname{\pstool@filestub\pstool@suffix}
 
 % And this is the main macro.
 \newcommand\pstool@process[2]{%
   \pstool@echo@verbose{%
       ^^J^^J=== pstool: begin processing ===}%
   \pstool@write@processfile{#1}
-      {\ip@directpath\ip@lastelement}{#2}%
-  \pstool@exe{auxiliary process: \ip@lastelement\space}
+      {\ip@directpath\pstool@filestub}{#2}%
+  \pstool@exe{auxiliary process: \pstool@filestub\space}
     {./}{latex
       -shell-escape
       -output-format=dvi
@@ -297,16 +297,16 @@ Copyright 2008
           "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
     \pstool@exe{pdfcrop}{\ip@directpath}{%
       pdfcrop \pstool@pdfcrop@opts\space
-          "\pstool@jobname.pdf" "\ip@lastelement.pdf"}%
+          "\pstool@jobname.pdf" "\pstool@filestub.pdf"}%
   \else
     \pstool@exe{ps2pdf}{\ip@directpath}{%
       ps2pdf \pstool@pspdf@opts\space
-          "\pstool@jobname.ps" "\ip@lastelement.pdf"}%
+          "\pstool@jobname.ps" "\pstool@filestub.pdf"}%
   \fi
   \pstool@endprocess{%
     \pstool@cleanup
     \pstool@includegraphics{%
-      \ip@directpath\ip@lastelement}%
+      \ip@directpath\pstool@filestub}%
   }%
   \pstool@echo@verbose{^^J=== pstool: end processing ===^^J}%
 }
@@ -339,7 +339,7 @@ Copyright 2008
         \noexpand\begin{preview}^^J%
       \fi
       \unexpanded{#3^^J}% this is the "psfrag" material
-      \noexpand\includegraphics[#1]{\ip@lastelement}^^J%
+      \noexpand\includegraphics[#1]{\pstool@filestub}^^J%
       \if@pstool@pdfcrop@\else
         \noexpand\end{preview}^^J%
       \fi
