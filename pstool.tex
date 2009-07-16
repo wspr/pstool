@@ -2,7 +2,7 @@
 \begin{filecontents*}{README.txt}
 __________________
 The pstool package
-v1.2b
+v1.3
 
 A package like "pst-pdf" for processing PostScript graphics 
 with psfrag labels within pdfLaTeX documets. The difference 
@@ -22,7 +22,7 @@ Copyright 2008
 \end{filecontents*}
 
 \begin{filecontents}{pstool.sty}
-\ProvidesPackage{pstool}[2009/07/03 v1.2b
+\ProvidesPackage{pstool}[2009/07/16 v1.3
   Wrapper for processing PostScript/psfrag figures]
 
 % External packages
@@ -72,6 +72,28 @@ Copyright 2008
 
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
 \ExecuteOptionsX{suffix={-pstool}}
+
+\define@choicekey*{pstool.sty}{bitmap}
+  [\@tempa\@tempb]{auto,lossless,lossy}{%
+    \ifcase\@tempb
+      \let\pstool@bitmap@opts\@empty
+    \or
+      \def\pstool@bitmap@opts{%
+        -dAutoFilterColorImages=false 
+        -dAutoFilterGrayImages=false 
+        -dColorImageFilter=/FlateEncode 
+        -dGrayImageFilter=/FlateEncode
+      }
+    \or
+      \def\pstool@bitmap@opts{%
+        -dAutoFilterColorImages=false 
+        -dAutoFilterGrayImages=false 
+        -dColorImageFilter=/DCTEncode 
+        -dGrayImageFilter=/DCTEncode
+      }
+    \fi
+}
+\ExecuteOptionsX{bitmap=lossless}
 
 % \HideAllDefining
 % \Define*{latex-options}
@@ -293,14 +315,14 @@ Copyright 2008
         \pstool@dvips@opts\space "\pstool@jobname.dvi"}%
   \if@pstool@pdfcrop@
     \pstool@exe{ps2pdf}{\ip@directpath}{%
-      ps2pdf \pstool@pspdf@opts\space
+      ps2pdf \pstool@bitmap@opts\space \pstool@pspdf@opts\space
           "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
     \pstool@exe{pdfcrop}{\ip@directpath}{%
       pdfcrop \pstool@pdfcrop@opts\space
           "\pstool@jobname.pdf" "\pstool@filestub.pdf"}%
   \else
     \pstool@exe{ps2pdf}{\ip@directpath}{%
-      ps2pdf \pstool@pspdf@opts\space
+      ps2pdf \pstool@bitmap@opts\space \pstool@pspdf@opts\space
           "\pstool@jobname.ps" "\pstool@filestub.pdf"}%
   \fi
   \pstool@endprocess{%
@@ -611,8 +633,8 @@ The command line options passed to each program of the auxiliary processing can 
 \item[\pkgopt{pdfcrop-options=...}].
 \end{description}
 For the most part these will be unnecessary, although passing the correct options to |ps2pdf| can sometimes be a little obscure. For example, I use the following for generating figures in my thesis:\par
-{\centering|ps2pdf-options={-dCompatibilityLevel=1.4 -dPDFSETTINGS=/prepress}|\par}
-I believe this incantation forces fonts to be embedded within the individual figure files, without which some printers and \textsc{pdf} viewers have trouble with the textual labels.
+{\centering|ps2pdf-options={-dPDFSETTINGS=/prepress}|\par}
+This forces the `base fourteen' fonts to be embedded within the individual figure files, without which some printers and \textsc{pdf} viewers have trouble with the textual labels. In fact, from v1.3 of \pkg{pstool}, this option is now the default.
 
 \section{Miscellaneous details}
 
