@@ -276,19 +276,27 @@ Copyright 2008
 % \section{User commands}
 %  Finally, define \cmd\pstool\ as appropriate for the mode: (|all|, |none|, |auto|, respectively)
 \ifpdf
-  \ifcase\pstool@process@choice
-    \let\pstool\pstool@alwaysprocess
-    \WithSuffix\def\pstool!{\pstool@alwaysprocess}
-    \WithSuffix\def\pstool*{\pstool@alwaysprocess}
-  \or
-    \let\pstool\pstool@neverprocess
-    \WithSuffix\def\pstool!{\pstool@neverprocess}
-    \WithSuffix\def\pstool*{\pstool@neverprocess}
-  \or
-    \let\pstool\pstool@maybeprocess
-    \WithSuffix\def\pstool!{\pstool@neverprocess}
-    \WithSuffix\def\pstool*{\pstool@alwaysprocess}
-  \fi
+  \newcommand\pstool{%
+    \ifcase\pstool@process@choice
+      \expandafter \pstool@alwaysprocess \or
+      \expandafter \pstool@neverprocess  \or
+      \expandafter \pstool@maybeprocess
+    \fi
+  }
+  \WithSuffix\def\pstool!{%
+    \ifcase\pstool@process@choice
+      \expandafter \pstool@alwaysprocess \or
+      \expandafter \pstool@neverprocess  \or
+      \expandafter \pstool@neverprocess
+    \fi
+  }
+  \WithSuffix\def\pstool*{%
+    \ifcase\pstool@process@choice
+      \expandafter \pstool@alwaysprocess \or
+      \expandafter \pstool@neverprocess  \or
+      \expandafter \pstool@alwaysprocess
+    \fi
+  }
 \else
   \let\pstool\pstool@neverprocess
   \WithSuffix\def\pstool!{\pstool@neverprocess}
