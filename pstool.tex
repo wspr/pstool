@@ -108,7 +108,7 @@ Copyright 2008
 \ExecuteOptionsX{%
   latex-options={},
   dvips-options={},
-  ps2pdf-options={},
+  ps2pdf-options={-dPDFSETTINGS=/prepress},
   pdfcrop-options={}}
 
 \ifpdf
@@ -627,14 +627,23 @@ These three package options correspond to the \LaTeX\ command line options \text
 \subsection{Auxiliary processing command line options}
 The command line options passed to each program of the auxiliary processing can be changed with the following package options:
 \begin{description}
-\item[\pkgopt{latex-options=...}];
-\item[\pkgopt{dvips-options=...}];
-\item[\pkgopt{ps2pdf-options=...}]; and,
-\item[\pkgopt{pdfcrop-options=...}].
+\item[\pkgopt{latex-options=...}]
+\item[\pkgopt{dvips-options=...}]
+\item[\pkgopt{ps2pdf-options=...}] and,
+\item[\pkgopt{pdfcrop-options=...}] (if applicable).
 \end{description}
-For the most part these will be unnecessary, although passing the correct options to |ps2pdf| can sometimes be a little obscure. For example, I use the following for generating figures in my thesis:\par
+For the most part these will be unnecessary, although passing the correct options to |ps2pdf| can sometimes be a little obscure.\footnote{The manual is here: \url{http://pages.cs.wisc.edu/~ghost/doc/cvs/Ps2pdf.htm}} For example, I use the following for generating figures in my thesis:\par
 {\centering|ps2pdf-options={-dPDFSETTINGS=/prepress}|\par}
-This forces the `base fourteen' fonts to be embedded within the individual figure files, without which some printers and \textsc{pdf} viewers have trouble with the textual labels. In fact, from v1.3 of \pkg{pstool}, this option is now the default.
+This forces the `base fourteen' fonts to be embedded within the individual figure files, without which some printers and \textsc{pdf} viewers have trouble with the textual labels. In fact, from v1.3 of \pkg{pstool}, this option is now the default. Use |ps2pdf-options={}| to override this default if necessary.
+
+\subsection{Compression of bitmap data}
+In the conversion using |ps2pdf|, bitmap images are stored using either using lossy or lossless compression. The default behaviour for \pkg{pstool} is to force lossless compression, because we believe that to be the most commonly desired use case (you don't want scientific graphics rendered with possible compression artifacts). This behaviour can be adjusted using one of these options:
+\begin{description}
+\item[\pkgopt{bitmap=auto}] do whatever |ps2pdf| does by default, which seems to be to use lossy compression most, if not all, of the time;
+\item[\pkgopt{bitmap=lossy}] bitmap images are compressed like \textsc{jpg}; this is only really suitable for photographs;
+\item[\pkgopt{bitmap=lossless}] bitmap images are compressed like \textsc{png}; this is suitable for screenshots and generated data such as a surface plot within Matlab (\emph{default}).
+\end{description}
+These are just special cases of the \pkgopt{ps2pdf-options=...} option, but using \pkgopt{bitmap=...} is much more convenient since the |ps2pdf| options to effect this behaviour are quite verbose. Note that the |auto| and |lossy| outputs differ in quality; |lossy| is lower quality that |auto| even when the latter uses a lossy compression scheme. Adjusting the quality for these options is only possible with relatively complex Ghostscript options.
 
 \section{Miscellaneous details}
 
@@ -650,9 +659,9 @@ The initial release of this package does not support cross-references within the
 
 \subsection{A note on file paths}
 
-\pkg{pstool} does its best to ensure that you can put image files where-ever you like and the auxiliary processing will still function correctly. In order to ensure this,  the external |pdflatex| compilation uses the |-output-directory| feature of \pdfTeX. This command line option is definitely supported on all platforms in TeX~Live~2008 and MiKTeX~2.7, but earlier distributions may not be supported.
+\pkg{pstool} tries to ensure that you can put image files in subdirectories of the main document and the auxiliary processing will still function correctly. In order to ensure this,  the external |pdflatex| compilation uses the |-output-directory| feature of \pdfTeX. This command line option is definitely supported on all platforms from TeX~Live~2008 and MiKTeX~2.7, but earlier distributions may not be supported.
 
-One problem that \pkg{pstool} does not (currently) solve on its own is the inclusion of images that do not exist in subdirectories of the main document. For example, |\pstool{../Figures/myfig}| will not process by default because \pdfTeX\ usually does not have permission to write into folders that are higher in the heirarchy than the main document. This can be worked around presently in two different ways: (although maybe only for Mac~OS~X and Linux)
+One problem that \pkg{pstool} does not solve on its own is the inclusion of images that do not exist in subdirectories of the main document. For example, |\pstool{../Figures/myfig}| can not process by default because \pdfTeX\ usually does not have permission to write into folders that are higher in the heirarchy than the main document. This can be worked around presently in two different ways: (although maybe only for Mac~OS~X and Linux)
 \begin{enumerate}
 \item Give |pdflatex| permission to write anywhere with the command:\\
 |openout_any=a pdflatex ...|
