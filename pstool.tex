@@ -73,25 +73,26 @@ Copyright 2008
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
 \ExecuteOptionsX{suffix={-pstool}}
 
+% There is an implicit "\space" after the bitmap options.
 \define@choicekey*{pstool.sty}{bitmap}
-  [\@tempa\@tempb]{auto,lossless,lossy}{%
-    \ifcase\@tempb
-      \let\pstool@bitmap@opts\@empty
-    \or
-      \def\pstool@bitmap@opts{%
-        -dAutoFilterColorImages=false 
-        -dAutoFilterGrayImages=false 
-        -dColorImageFilter=/FlateEncode 
-        -dGrayImageFilter=/FlateEncode
-      }
-    \or
-      \def\pstool@bitmap@opts{%
-        -dAutoFilterColorImages=false 
-        -dAutoFilterGrayImages=false 
-        -dColorImageFilter=/DCTEncode 
-        -dGrayImageFilter=/DCTEncode
-      }
-    \fi
+    [\@tempa\@tempb]{auto,lossless,lossy}{%
+  \ifcase\@tempb
+    \let\pstool@bitmap@opts\@empty
+  \or
+    \def\pstool@bitmap@opts{%
+      -dAutoFilterColorImages=false
+      -dAutoFilterGrayImages=false
+      -dColorImageFilter=/FlateEncode
+      -dGrayImageFilter=/FlateEncode % space
+    }
+  \or
+    \def\pstool@bitmap@opts{%
+      -dAutoFilterColorImages=false
+      -dAutoFilterGrayImages=false
+      -dColorImageFilter=/DCTEncode
+      -dGrayImageFilter=/DCTEncode % space
+    }
+  \fi
 }
 \ExecuteOptionsX{bitmap=lossless}
 
@@ -328,14 +329,14 @@ Copyright 2008
         \pstool@dvips@opts\space "\pstool@jobname.dvi"}%
   \if@pstool@pdfcrop@
     \pstool@exe{ps2pdf}{\ip@directpath}{%
-      ps2pdf \pstool@bitmap@opts\space \pstool@pspdf@opts\space
+      ps2pdf "\pstool@bitmap@opts\pstool@pspdf@opts"
           "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
     \pstool@exe{pdfcrop}{\ip@directpath}{%
       pdfcrop \pstool@pdfcrop@opts\space
           "\pstool@jobname.pdf" "\pstool@filestub.pdf"}%
   \else
     \pstool@exe{ps2pdf}{\ip@directpath}{%
-      ps2pdf \pstool@bitmap@opts\space \pstool@pspdf@opts\space
+      ps2pdf "\pstool@bitmap@opts\pstool@pspdf@opts"
           "\pstool@jobname.ps" "\pstool@filestub.pdf"}%
   \fi
   \pstool@endprocess{%
