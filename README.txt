@@ -15,12 +15,16 @@ and compile the PDF documentation.
 Executing `latex pstool.ins` produces the files above
 except pstool.ins (and the PDF file, obviously).
 
-____________________
-Brief change history
-
-v1.3, July 2009: Add [bitmap] option
-
-* * * *
+Please see the PDF documentation for further information.
 
 Will Robertson & Zebb Prime
 Copyright 2008-2009
+
+____________________
+Brief change history
+
+v1.3, July 2009:
+  - [bitmap] option,
+  - \pstoolsetup{},
+  - localised pstool options per-graphic.
+
