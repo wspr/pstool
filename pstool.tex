@@ -255,8 +255,9 @@ Copyright 2008
 \else
   \newcommand\pstool@neverprocess[3][]{%
     \begingroup
+      \setkeys*{pstool.sty}{#1}%
       #3%
-      \pstool@includegraphics[#1]{#2}%
+      \expandafter\pstool@includegraphics\expandafter[\XKV@rm]{#2}%
     \endgroup}
 \fi
 
@@ -278,21 +279,21 @@ Copyright 2008
 %  Finally, define \cmd\pstool\ as appropriate for the mode: (|all|, |none|, |auto|, respectively)
 \ifpdf
   \newcommand\pstool{%
-    \ifcase\pstool@process@choice
+    \ifcase\pstool@process@choice\relax
       \expandafter \pstool@alwaysprocess \or
       \expandafter \pstool@neverprocess  \or
       \expandafter \pstool@maybeprocess
     \fi
   }
   \WithSuffix\def\pstool!{%
-    \ifcase\pstool@process@choice
+    \ifcase\pstool@process@choice\relax
       \expandafter \pstool@alwaysprocess \or
       \expandafter \pstool@neverprocess  \or
       \expandafter \pstool@neverprocess
     \fi
   }
   \WithSuffix\def\pstool*{%
-    \ifcase\pstool@process@choice
+    \ifcase\pstool@process@choice\relax
       \expandafter \pstool@alwaysprocess \or
       \expandafter \pstool@neverprocess  \or
       \expandafter \pstool@alwaysprocess
@@ -311,6 +312,8 @@ Copyright 2008
 
 % And this is the main macro.
 \newcommand\pstool@process[2]{%
+  \begingroup
+  \setkeys*{pstool.sty}{#1}%
   \pstool@echo@verbose{%
       ^^J^^J=== pstool: begin processing ===}%
   \pstool@write@processfile{#1}
@@ -345,6 +348,7 @@ Copyright 2008
       \ip@directpath\pstool@filestub}%
   }%
   \pstool@echo@verbose{^^J=== pstool: end processing ===^^J}%
+  \endgroup
 }
 
 % The file that is written for processing is set up to read the preamble of the original document and set the graphic on an empty page (cropping to size is done either here with \pkg{preview} or later with \pkg{pdfcrop}).
@@ -375,7 +379,9 @@ Copyright 2008
         \noexpand\begin{preview}^^J%
       \fi
       \unexpanded{#3^^J}% this is the "psfrag" material
-      \noexpand\includegraphics[#1]{\pstool@filestub}^^J%
+      \noexpand\includegraphics
+          [\unexpanded\expandafter{\XKV@rm}]
+          {\pstool@filestub}^^J%
       \if@pstool@pdfcrop@\else
         \noexpand\end{preview}^^J%
       \fi
@@ -492,7 +498,7 @@ Copyright 2008
 %&latex
 \def\pstoolCompile{N}
 \input pstool.tex
-\csname@@end\endcsname
+\csname @@end\endcsname
 \end{filecontents*}
 
 
