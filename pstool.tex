@@ -4,21 +4,26 @@ __________________
 The pstool package
 v1.3
 
-A package like "pst-pdf" for processing PostScript graphics 
-with psfrag labels within pdfLaTeX documets. The difference 
-with this package is that every graphic is compiled individually, 
+A package like "pst-pdf" for processing PostScript graphics
+with psfrag labels within pdfLaTeX documets. The difference
+with this package is that every graphic is compiled individually,
 drastically speeding up compilation time when only a single
 figure needs re-processing.
 
 Running `latex` on pstool.tex will produce the files
   pstool.ins, pstool.sty, and README.txt,
-and compile the PDF documentation. 
+and compile the PDF documentation.
 
-Executing `tex pstool.ins` produces the files above 
+Executing `latex pstool.ins` produces the files above
 except pstool.ins (and the PDF file, obviously).
 
+____________________
+Brief change history
+
+v1.3, July 2009: Add [bitmap] option
+
 Will Robertson & Zebb Prime
-Copyright 2008
+Copyright 2008-2009
 \end{filecontents*}
 
 \begin{filecontents}{pstool.sty}
@@ -657,13 +662,13 @@ For the most part these will be unnecessary, although passing the correct option
 This forces the `base fourteen' fonts to be embedded within the individual figure files, without which some printers and \textsc{pdf} viewers have trouble with the textual labels. In fact, from v1.3 of \pkg{pstool}, this option is now the default. Use |ps2pdf-options={}| to override this default if necessary.
 
 \subsection{Compression of bitmap data}
-In the conversion using |ps2pdf|, bitmap images are stored using either using lossy or lossless compression. The default behaviour for \pkg{pstool} is to force lossless compression, because we believe that to be the most commonly desired use case (you don't want scientific graphics rendered with possible compression artifacts). This behaviour can be adjusted using one of these options:
+In the conversion using |ps2pdf|, bitmap images are stored using either lossy or lossless compression. The default behaviour for \pkg{pstool} is to force lossless compression, because we believe that to be the most commonly desired use case (you don't want scientific graphics rendered with possible compression artifacts). This behaviour can be adjusted using one of these options:
 \begin{description}
 \item[\pkgopt{bitmap=auto}] do whatever |ps2pdf| does by default, which seems to be to use lossy compression most, if not all, of the time;
 \item[\pkgopt{bitmap=lossy}] bitmap images are compressed like \textsc{jpg}; this is only really suitable for photographs;
 \item[\pkgopt{bitmap=lossless}] bitmap images are compressed like \textsc{png}; this is suitable for screenshots and generated data such as a surface plot within Matlab (\emph{default}).
 \end{description}
-These are just special cases of the \pkgopt{ps2pdf-options=...} option, but using \pkgopt{bitmap=...} is much more convenient since the |ps2pdf| options to effect this behaviour are quite verbose. Note that the |auto| and |lossy| outputs differ in quality; |lossy| is lower quality that |auto| even when the latter uses a lossy compression scheme. Adjusting the quality for these options is only possible with relatively complex Ghostscript options.
+These are just special cases of the \pkgopt{ps2pdf-options=...} option, but using \pkgopt{bitmap=...} is much more convenient since the |ps2pdf| options to effect this behaviour are quite verbose. Note that the |auto| and |lossy| outputs differ in quality; |lossy| is lower quality than |auto| even when the latter uses a lossy compression scheme. Adjusting the quality for these options is only possible with relatively complex Ghostscript options.
 
 \section{Miscellaneous details}
 
