@@ -36,7 +36,6 @@ Copyright 2008-2009
 \RequirePackage{%
   catchfile,color,ifpdf,ifplatform,
   graphicx,pdftexcmds,psfrag,suffix,xkeyval}
-\RequirePackage{inversepath}[2008/07/31 v0.2]
 
 % Allocations
 \newif\if@pstool@pdfcrop@
@@ -190,7 +189,7 @@ Copyright 2008-2009
     \parbox{0.8\linewidth}{%
       \color{red}\raggedright\ttfamily\scshape\small
       An error occured processing graphic 
-      \upshape`\ip@directpath\pstool@filestub'%
+      \upshape`\pstool@path\pstool@filestub'%
     }%
   }%
 }
@@ -235,8 +234,8 @@ Copyright 2008-2009
 
 % \subsection{File age detection}
 \def\pstool@IfnewerEPS{%
-  \ifnum\pdf@strcmp{\pdf@filemoddate{\ip@directpath\pstool@filestub.pdf}}
-                   {\pdf@filemoddate{\ip@directpath\pstool@filestub.eps}}
+  \ifnum\pdf@strcmp{\pdf@filemoddate{\pstool@path\pstool@filestub.pdf}}
+                   {\pdf@filemoddate{\pstool@path\pstool@filestub.eps}}
         < \z@
     \expandafter\@firstoftwo
   \else
@@ -244,22 +243,16 @@ Copyright 2008-2009
   \fi
 }
 
-% A wrapper for \cs{inversepath*}. Long story short, always need a relative path to a filename even if it's in the same directory.
+% Grab filename and filepath. Always need a relative path to a filename even if it's in the same directory.
 \def\pstool@getpaths#1{%
-  \edef\@tempa{\unexpanded{\inversepath*}{#1}}%
-  \@tempa% calculate filename, path \& inverse path
-  \ifx\ip@directpath\@empty
-    \def\ip@directpath{./}%
+  \filename@parse{#1}%
+  \ifx\filename@area\@empty
+    \def\pstool@path{./}%
+  \else
+    \let\pstool@path\filename@area
   \fi
-% Strip off a possible wayward |.eps| suffix.
-  \edef\pstool@filestub{%
-    \expandafter\pstool@stripEPS\ip@lastelement.eps\@nil
-  }%
+  \let\pstool@filestub\filename@base
 }
-
-\def\pstool@stripEPS#1.eps#2\@nil{#1}
-% |test.eps\@nil| $\to$ |test| (|#2| $\to$ \<empty>)\\
-% |test.eps.eps\@nil| $\to$ |test| (|#2| $\to$ |.eps|)
 
 % \section{Command parsing}
 % User input is \cmd\pstool\ (with optional |*| or |!| suffix) which turns into one of the following three macros depending on the mode.
@@ -340,35 +333,35 @@ Copyright 2008-2009
   \pstool@echo@verbose{%
       ^^J^^J=== pstool: begin processing ===}%
   \pstool@write@processfile{#1}
-      {\ip@directpath\pstool@filestub}{#2}%
+      {\pstool@path\pstool@filestub}{#2}%
   \pstool@exe{auxiliary process: \pstool@filestub\space}
     {./}{latex
       -shell-escape
       -output-format=dvi
-      -output-directory="\ip@directpath"
+      -output-directory="\pstool@path"
       -interaction=\pstool@mode\space
       \pstool@latex@opts\space
           "\pstool@jobname.tex"}%
 % Execute |dvips| in quiet mode if |latex| is not run in (non/error)stop mode:
-  \pstool@exe{dvips}{\ip@directpath}{%
+  \pstool@exe{dvips}{\pstool@path}{%
     dvips \if@pstool@verbose@\else -q \fi -Ppdf 
         \pstool@dvips@opts\space "\pstool@jobname.dvi"}%
   \if@pstool@pdfcrop@
-    \pstool@exe{ps2pdf}{\ip@directpath}{%
+    \pstool@exe{ps2pdf}{\pstool@path}{%
       ps2pdf "\pstool@bitmap@opts\pstool@pspdf@opts"
           "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
-    \pstool@exe{pdfcrop}{\ip@directpath}{%
+    \pstool@exe{pdfcrop}{\pstool@path}{%
       pdfcrop \pstool@pdfcrop@opts\space
           "\pstool@jobname.pdf" "\pstool@filestub.pdf"}%
   \else
-    \pstool@exe{ps2pdf}{\ip@directpath}{%
+    \pstool@exe{ps2pdf}{\pstool@path}{%
       ps2pdf "\pstool@bitmap@opts\pstool@pspdf@opts"
           "\pstool@jobname.ps" "\pstool@filestub.pdf"}%
   \fi
   \pstool@endprocess{%
     \pstool@cleanup
     \pstool@includegraphics{%
-      \ip@directpath\pstool@filestub}%
+      \pstool@path\pstool@filestub}%
   }%
   \pstool@echo@verbose{^^J=== pstool: end processing ===^^J}%
   \endgroup
@@ -418,7 +411,7 @@ Copyright 2008-2009
 
 \def\pstool@cleanup{%
   \@for\@ii:=\pstool@rm@files\do{%
-    \pstool@rm{\ip@directpath}{\pstool@jobname\@ii}%
+    \pstool@rm{\pstool@path}{\pstool@jobname\@ii}%
   }%
 }
 
