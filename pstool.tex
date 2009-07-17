@@ -22,6 +22,8 @@ Brief change history
 
 v1.3, July 2009: Add [bitmap] option
 
+* * * *
+
 Will Robertson & Zebb Prime
 Copyright 2008-2009
 \end{filecontents*}
@@ -62,13 +64,13 @@ Copyright 2008-2009
 \ExecuteOptionsX{process=auto}
 
 \define@choicekey*{pstool.sty}{mode}
-  [\@tempa\@tempb]{errorstop,nonstop,batch}{%
-    \ifnum\@tempb=2\relax
-      \@pstool@verbose@false
-    \else
-      \@pstool@verbose@true
-    \fi
-    \edef\pstool@mode{\@tempa mode}%
+    [\@tempa\@tempb]{errorstop,nonstop,batch}{%
+  \ifnum\@tempb=2\relax
+    \@pstool@verbose@false
+  \else
+    \@pstool@verbose@true
+  \fi
+  \edef\pstool@mode{\@tempa mode}%
 }
 \ExecuteOptionsX{mode=batch}
 
@@ -111,11 +113,12 @@ Copyright 2008-2009
 \DeclareOptionX{ps2pdf-options}{\def\pstool@pspdf@opts{#1}}
 \DeclareOptionX{pdfcrop-options}{\def\pstool@pdfcrop@opts{#1}}
 % \ResumeAllDefining
-\ExecuteOptionsX{%
+\ExecuteOptionsX{
   latex-options={},
   dvips-options={},
   ps2pdf-options={-dPDFSETTINGS=/prepress},
-  pdfcrop-options={}}
+  pdfcrop-options={}
+}
 
 \ifpdf
   \ifshellescape\else
@@ -142,7 +145,8 @@ Copyright 2008-2009
 \def\pstool@echo#1{%
   \if@pstool@verbose@
     \pstool@echo@verbose{#1}%
-  \fi}
+  \fi
+}
 
 \def\pstool@echo@verbose#1{%
   \immediate\write18{echo "#1"}%
@@ -160,7 +164,9 @@ Copyright 2008-2009
 \newcommand\pstool@rm[2]{%
   \OnlyIfFileExists{#1#2}{%
     \immediate\write18{%
-      cd "#1"\pstool@cmdsep\pstool@rm@cmd "#2"}}%
+      cd "#1"\pstool@cmdsep\pstool@rm@cmd "#2"
+    }%
+  }%
 }
 
 % Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
@@ -175,14 +181,19 @@ Copyright 2008-2009
   \ifnum\pstool@status > \z@
     \PackageWarning{pstool}{Execution failed during process:^^J\space\space#3^^JThis warning occurred}%
     \expandafter\pstool@abort
-  \fi}
+  \fi
+}
 
 % Edit this definition to print something else when graphic processing fails.
 \def\pstool@error{%
   \fbox{%
     \parbox{0.8\linewidth}{%
       \color{red}\raggedright\ttfamily\scshape\small
-      An error occured processing graphic \upshape`\ip@directpath\pstool@filestub'}}}
+      An error occured processing graphic 
+      \upshape`\ip@directpath\pstool@filestub'%
+    }%
+  }%
+}
 
 \def\pstool@abort#1\pstool@endprocess{\pstool@error\@gobble}
 \let\pstool@endprocess\@firstofone
@@ -203,7 +214,8 @@ Copyright 2008-2009
   \ifwindows\else
     \immediate\write18{%
       touch #1\pstool@statusfile}%
-  \fi}
+  \fi
+}
 \def\pstool@statusfile{pstool-statusfile.txt}
 
 % Read the exit status from the temporary file and delete it.\\
@@ -217,13 +229,15 @@ Copyright 2008-2009
       Status of process unable to be determined:^^J  #1^^J%
       Trying to proceed... }%
     \def\pstool@status{0}%
-  \fi}
+  \fi
+}
 \def\pstool@statusfail{\par }% what results when \TeX\ reads an empty file
 
 % \subsection{File age detection}
 \def\pstool@IfnewerEPS{%
   \ifnum\pdf@strcmp{\pdf@filemoddate{\ip@directpath\pstool@filestub.pdf}}
-                   {\pdf@filemoddate{\ip@directpath\pstool@filestub.eps}} < \z@
+                   {\pdf@filemoddate{\ip@directpath\pstool@filestub.eps}}
+        < \z@
     \expandafter\@firstoftwo
   \else
     \expandafter\@secondoftwo
@@ -252,18 +266,21 @@ Copyright 2008-2009
 
 \newcommand\pstool@alwaysprocess[3][]{%
   \pstool@getpaths{#2}%
-  \pstool@process{#1}{#3}}
+  \pstool@process{#1}{#3}%
+}
 
 \ifpdf
   \newcommand\pstool@neverprocess[3][]{%
-    \pstool@includegraphics{#2}}
+    \pstool@includegraphics{#2}%
+  }
 \else
   \newcommand\pstool@neverprocess[3][]{%
     \begingroup
       \setkeys*{pstool.sty}{#1}%
       #3%
       \expandafter\pstool@includegraphics\expandafter[\XKV@rm]{#2}%
-    \endgroup}
+    \endgroup
+  }
 \fi
 
 % For regular operation, which processes the figure only if
@@ -278,7 +295,8 @@ Copyright 2008-2009
     }%
   }{%
     \pstool@process{#1}{#3}%
-  }}
+  }%
+}
 
 % \section{User commands}
 %  Finally, define \cmd\pstool\ as appropriate for the mode: (|all|, |none|, |auto|, respectively)
@@ -358,47 +376,51 @@ Copyright 2008-2009
 
 % The file that is written for processing is set up to read the preamble of the original document and set the graphic on an empty page (cropping to size is done either here with \pkg{preview} or later with \pkg{pdfcrop}).
 \def\pstool@write@processfile#1#2#3{%
-    \immediate\openout\pstool@out #2\pstool@suffix.tex\relax
-    \immediate\write\pstool@out{%
+  \immediate\openout\pstool@out #2\pstool@suffix.tex\relax
+  \immediate\write\pstool@out{%
 % Input the main document; redefine the document environment so only the preamble is read:
-      \unexpanded{%
-        \pdfoutput=0^^J% force DVI mode if not already
-        \let\origdocument\document^^J%
-        \let\EndPreamble\endinput^^J%
-        \def\document{\endgroup\endinput}^^J}%
-      \noexpand\input{\jobname}^^J%
+    \unexpanded{%
+      \pdfoutput=0^^J% force DVI mode if not already
+      \let\origdocument\document^^J%
+      \let\EndPreamble\endinput^^J%
+      \def\document{\endgroup\endinput}^^J%
+    }%
+    \noexpand\input{\jobname}^^J%
 %
 % Now the preamble of the process file: (restoring document's original meaning; empty \cmd\pagestyle\ removes the page number)
-      \if@pstool@pdfcrop@\else
-        \noexpand\usepackage[active,tightpage]{preview}^^J%
-      \fi
-      \unexpanded{%
-        \let\document\origdocument^^J%
-        \pagestyle{empty}^^J}%
+    \if@pstool@pdfcrop@\else
+      \noexpand\usepackage[active,tightpage]{preview}^^J%
+    \fi
+    \unexpanded{%
+      \let\document\origdocument^^J%
+      \pagestyle{empty}^^J%
+    }%
 %
 % And the document body to place the graphic on a page of its own:
-      \unexpanded{%
-        \begin{document}^^J%
-        \centering\null\vfill^^J}%
-      \if@pstool@pdfcrop@\else
-        \noexpand\begin{preview}^^J%
-      \fi
-      \unexpanded{#3^^J}% this is the "psfrag" material
-      \noexpand\includegraphics
-          [\unexpanded\expandafter{\XKV@rm}]
-          {\pstool@filestub}^^J%
-      \if@pstool@pdfcrop@\else
-        \noexpand\end{preview}^^J%
-      \fi
-      \unexpanded{%
-        \vfill\end{document}}^^J%
-      }%
-    \immediate\closeout\pstool@out}
+    \unexpanded{%
+      \begin{document}^^J%
+      \centering\null\vfill^^J%
+    }%
+    \if@pstool@pdfcrop@\else
+      \noexpand\begin{preview}^^J%
+    \fi
+    \unexpanded{#3^^J}% this is the "psfrag" material
+    \noexpand\includegraphics
+        [\unexpanded\expandafter{\XKV@rm}]
+        {\pstool@filestub}^^J%
+    \if@pstool@pdfcrop@\else
+      \noexpand\end{preview}^^J%
+    \fi
+    \unexpanded{\vfill\end{document}}^^J%
+  }%
+  \immediate\closeout\pstool@out
+}
 
 \def\pstool@cleanup{%
   \@for\@ii:=\pstool@rm@files\do{%
     \pstool@rm{\ip@directpath}{\pstool@jobname\@ii}%
-}}
+  }%
+}
 
 \providecommand\EndPreamble{}
 
