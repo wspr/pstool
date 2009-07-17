@@ -609,6 +609,12 @@ More flexible usage to provide a complete replacement for \pkg{pst-pdf} (e.g., s
 
 \section{Getting started}
 
+Processing pdf\/\LaTeX\ documents with \pkg{pstool} requires the `shell escape' feature of pdf\/\TeX\ to be activated.
+This allows execution of auxiliary commands from within \LaTeX, a feature which is often disabled by default for security reasons.
+If shell escape is not enabled, a warning will be issued in console output when the package is loaded.
+Depending how you compile your \LaTeX\ document, shell escape is enabled in different ways.%
+\footnote{On the command line, use the \texttt{-shell-escape} switch. Otherwise, you're on your own.}
+
 Load the package as usual; no package options are required by default, but there are a few useful options described later in section~\ref{pkgopt}. Note that you do not need to load \pkg{psfrag} separately. You also do not need to load \pkg{graphicx} separately, but if you do so, ensure that you do \emph{not} include driver information (such as |[pdftex]|); this will play havoc with \pkg{pstool}'s automatic processing stage.
 
 The generic command provided by this package is\par
