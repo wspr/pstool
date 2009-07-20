@@ -90,17 +90,17 @@ v1.3, July 2009:
     \let\pstool@bitmap@opts\@empty
   \or
     \def\pstool@bitmap@opts{%
-      -dAutoFilterColorImages=false
-      -dAutoFilterGrayImages=false
-      -dColorImageFilter=/FlateEncode
-      -dGrayImageFilter=/FlateEncode % space
+      "-dAutoFilterColorImages=false"
+      "-dAutoFilterGrayImages=false"
+      "-dColorImageFilter=/FlateEncode"
+      "-dGrayImageFilter=/FlateEncode" % space
     }
   \or
     \def\pstool@bitmap@opts{%
-      -dAutoFilterColorImages=false
-      -dAutoFilterGrayImages=false
-      -dColorImageFilter=/DCTEncode
-      -dGrayImageFilter=/DCTEncode % space
+      "-dAutoFilterColorImages=false"
+      "-dAutoFilterGrayImages=false"
+      "-dColorImageFilter=/DCTEncode"
+      "-dGrayImageFilter=/DCTEncode" % space
     }
   \fi
 }
@@ -119,7 +119,7 @@ v1.3, July 2009:
 \ExecuteOptionsX{
   latex-options={},
   dvips-options={},
-  ps2pdf-options={-dPDFSETTINGS=/prepress},
+  ps2pdf-options={"-dPDFSETTINGS=/prepress"},
   pdfcrop-options={}
 }
 
@@ -352,14 +352,14 @@ v1.3, July 2009:
         \pstool@dvips@opts\space "\pstool@jobname.dvi"}%
   \if@pstool@pdfcrop@
     \pstool@exe{ps2pdf}{\pstool@path}{%
-      ps2pdf "\pstool@bitmap@opts\pstool@pspdf@opts"
+      ps2pdf \pstool@bitmap@opts \pstool@pspdf@opts \space
           "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
     \pstool@exe{pdfcrop}{\pstool@path}{%
       pdfcrop \pstool@pdfcrop@opts\space
           "\pstool@jobname.pdf" "\pstool@filestub.pdf"}%
   \else
     \pstool@exe{ps2pdf}{\pstool@path}{%
-      ps2pdf "\pstool@bitmap@opts\pstool@pspdf@opts"
+      ps2pdf \pstool@bitmap@opts \pstool@pspdf@opts \space
           "\pstool@jobname.ps" "\pstool@filestub.pdf"}%
   \fi
   \pstool@endprocess{%
