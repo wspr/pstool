@@ -83,7 +83,7 @@ v1.3, July 2009:
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
 \ExecuteOptionsX{suffix={-pstool}}
 
-% There is an implicit "\space" after the bitmap options.
+% There is an implicit |\space| after the bitmap options.
 \define@choicekey*{pstool.sty}{bitmap}
     [\@tempa\@tempb]{auto,lossless,lossy}{%
   \ifcase\@tempb
@@ -612,13 +612,18 @@ If shell escape is not enabled, a warning will be issued in console output when 
 Depending how you compile your \LaTeX\ document, shell escape is enabled in different ways.%
 \footnote{On the command line, use the \texttt{-shell-escape} switch. Otherwise, you're on your own.}
 
-Load the package as usual; no package options are required by default, but there are a few useful options described later in section~\ref{pkgopt}. Note that you do not need to load \pkg{psfrag} separately. You also do not need to load \pkg{graphicx} separately, but if you do so, ensure that you do \emph{not} include driver information (such as |[pdftex]|); this will play havoc with \pkg{pstool}'s automatic processing stage.
+Load the package as usual; no package options are required by default, but there are a few useful options described later in section~\ref{pkgopt}.
+Note that you do not need to load \pkg{psfrag} separately.
+You also do not need to load \pkg{graphicx} separately, but if you do so, ensure that you do \emph{not} include driver information (such as |[pdftex]|); this will play havoc with \pkg{pstool}'s automatic processing stage.
 
 The generic command provided by this package is\par
 {\centering
-  \cmd\pstool\ \arg[graphicx options] \arg{filename} \arg{input definitions}
+  \cmd\pstool\ \arg[options] \arg{filename} \arg{input definitions}
 \par}
-It converts the graphic \<filename>|.eps| to \<filename>|.pdf| through a unique \DVI$\to$\PS$\to$\PDF\ process for each graphic, using the preamble of the main document. The resulting graphic is then inserted into the document, with optional \<graphicx options>. Note that these optional arguments take effect in the \emph{processing stage}; if you change the \<options>, you must re-process the figure. The third argument to \cmd\pstool\ allows arbitrary \<input definitions> (such as \cmd\psfrag\ directives) to be inserted before the figure as it is processed. 
+It converts the graphic \<filename>|.eps| to \<filename>|.pdf| through a unique \DVI$\to$\PS$\to$\PDF\ process for each graphic, using the preamble of the main document.
+The resulting graphic is then inserted into the document, with \<options> consisting of options for \pkg{graphicx} (e.g., \texttt{angle}, \texttt{scale}) or for \pkg{pstool} (as described later in Section~\ref{pkgopt}).
+Note that these optional arguments take effect in the \emph{processing stage}; if you change the \<options>, you must manually re-process the figure.
+The third argument to \cmd\pstool\ allows arbitrary \<input definitions> (such as \cmd\psfrag\ directives) to be inserted before the figure as it is processed. 
 
 The command \cmd\pstool\ can take an optional |*| or |!| suffix to change the behaviour of the command:
 \begin{description}
@@ -642,12 +647,15 @@ As above, but inserts the arbitrary code \<input definitions>, which will usuall
 \section{Package options}
 \label{pkgopt}
 
+Package options can be set or overridden at any time with \cmd\pstoolsetup\marg{pstool settings}.
+As mentioned in the previous section, these options also may be set in the optional argument to \cmd\pstool\ and \cmd\psfragfig, in which case they apply to that figure alone.
+
 \subsection{Forcing/disabling graphics processing}
 \label{process}
 
-While the suffixes |*| and |!| can be used to force or disable (respectively) the processing of each individual graphic, sometimes we want to do this on a global level. The following package options  override \emph{all} \pkg{pstool}  macros: 
+While the suffixes |*| and |!| can be used to force or disable (respectively) the processing of each individual graphic, sometimes we want to do this on a global level. The following package options override \emph{all} \pkg{pstool}  macros: 
 \begin{description}
-\item[\pkgopt{process=auto}] This is the default mode as described in the previous section, in which graphics with suffixes are only (re-)processed if the \EPS\ file is newer or the \PDF\ file does not exist;
+\item[\pkgopt{process=auto}] This is the default mode as described in the previous section, in which graphics without suffixes are only (re-)processed if the \EPS\ file is newer or the \PDF\ file does not exist;
 \item[\pkgopt{process=all}] Suffixes are ignored and all \cmd\pstool\ graphics are processed;
 \item[\pkgopt{process=none}] Suffixes are ignored and no \cmd\pstool\ graphics are processed.\footnote{If \pkg{pstool} is loaded in a \LaTeX\ document in \DVI\ mode, this is the option that is used since no external processing is required for these graphics.}
 \end{description}
@@ -682,9 +690,11 @@ The command line options passed to each program of the auxiliary processing can 
 \item[\pkgopt{ps2pdf-options=...}] and,
 \item[\pkgopt{pdfcrop-options=...}] (if applicable).
 \end{description}
-For the most part these will be unnecessary, although passing the correct options to |ps2pdf| can sometimes be a little obscure.\footnote{The manual is here: \url{http://pages.cs.wisc.edu/~ghost/doc/cvs/Ps2pdf.htm}} For example, I use the following for generating figures in my thesis:\par
-{\centering|ps2pdf-options={-dPDFSETTINGS=/prepress}|\par}
-This forces the `base fourteen' fonts to be embedded within the individual figure files, without which some printers and \textsc{pdf} viewers have trouble with the textual labels. In fact, from v1.3 of \pkg{pstool}, this option is now the default. Use |ps2pdf-options={}| to override this default if necessary.
+For the most part these will be unnecessary, although passing the correct options to |ps2pdf| can sometimes be a little obscure.\footnote{The manual is here: \url{http://pages.cs.wisc.edu/~ghost/doc/cvs/Ps2pdf.htm}} For example, I use the following for generating figures in my thesis:%
+\footnote{Note that each \texttt{ps2pdf} option must be quoted in Windows, which is unnecessary but does no harm in Linux and Mac~OS~X.}%
+\par{\centering|ps2pdf-options={"-dPDFSETTINGS=/prepress"}|\par}
+This forces the `base fourteen' fonts to be embedded within the individual figure files, without which some printers and \textsc{pdf} viewers have trouble with the textual labels. In fact, from v1.3 of \pkg{pstool}, this option is now the default.
+Note that subsequent calls to \pkgopt{ps2pdf-options=...} will override the \pkg{pstool} default; use |ps2pdf-options={}| to chose |ps2pdf|'s defaults if necessary. 
 
 \subsection{Compression of bitmap data}
 In the conversion using |ps2pdf|, bitmap images are stored using either lossy or lossless compression. The default behaviour for \pkg{pstool} is to force lossless compression, because we believe that to be the most commonly desired use case (you don't want scientific graphics rendered with possible compression artifacts). This behaviour can be adjusted using one of these options:
@@ -693,15 +703,14 @@ In the conversion using |ps2pdf|, bitmap images are stored using either lossy or
 \item[\pkgopt{bitmap=lossy}] bitmap images are compressed like \textsc{jpg}; this is only really suitable for photographs;
 \item[\pkgopt{bitmap=lossless}] bitmap images are compressed like \textsc{png}; this is suitable for screenshots and generated data such as a surface plot within Matlab (\emph{default}).
 \end{description}
-These are just special cases of the \pkgopt{ps2pdf-options=...} option, but using \pkgopt{bitmap=...} is much more convenient since the |ps2pdf| options to effect this behaviour are quite verbose. Note that the |auto| and |lossy| outputs differ in quality; |lossy| is lower quality than |auto| even when the latter uses a lossy compression scheme. Adjusting the quality for these options is only possible with relatively complex Ghostscript options.
+These are just special cases of the \pkgopt{ps2pdf-options=...} option, but using \pkgopt{bitmap=...} is much more convenient since the |ps2pdf| options to effect this behaviour are quite verbose.
+Note that the |auto| and |lossy| outputs differ in quality; |lossy| is lower quality than |auto| even when the latter uses a lossy compression scheme. Adjusting the quality for these options is only possible with relatively complex Ghostscript options.
 
 \section{Miscellaneous details}
 
 \subsection{The \cmd\EndPreamble\ command}
 
-At present, \pkg{pstool} scans the preamble of the main document by redefining |\begin{document}|, but this is rather fragile  because many classes and packages do their own redefining which overwrites \pkg{pstool}'s attempt. In this case, place the command\par
-{\centering|\EndPreamble|\par}\noindent
-where-ever you'd like the preamble in the auxiliary processing to end (although is must be placed before |\begin{document}| for obvious reasons). This is also handy to bypass anything in the preamble that will never be required for the figures but which will slow down or otherwise conflict with the auxiliary processing.
+At present, \pkg{pstool} scans the preamble of the main document by redefining |\begin{document}|, but this is rather fragile  because many classes and packages do their own redefining which overwrites \pkg{pstool}'s attempt. In this case, place the command \cmd\EndPreamble\ where-ever you'd like the preamble in the auxiliary processing to end (although is must be placed before |\begin{document}| for obvious reasons). This is also handy to bypass anything in the preamble that will never be required for the figures but which will slow down or otherwise conflict with the auxiliary processing.
 
 \subsection{Cross-reference limitations}
 
@@ -709,7 +718,7 @@ The initial release of this package does not support cross-references within the
 
 \subsection{A note on file paths}
 
-\pkg{pstool} tries to ensure that you can put image files in subdirectories of the main document and the auxiliary processing will still function correctly. In order to ensure this,  the external |pdflatex| compilation uses the |-output-directory| feature of \pdfTeX. This command line option is definitely supported on all platforms from TeX~Live~2008 and MiKTeX~2.7, but earlier distributions may not be supported.
+\pkg{pstool} tries to ensure that you can put image files in subdirectories of the main document and the auxiliary processing will still function correctly. In order to ensure this,  the external |pdflatex| compilation uses the |-output-directory| feature of \pdfTeX. This command line option is definitely supported on all platforms from TeX~Live~2008 and MiKTeX~2.7 onwards, but earlier distributions may not be supported.
 
 One problem that \pkg{pstool} does not solve on its own is the inclusion of images that do not exist in subdirectories of the main document. For example, |\pstool{../Figures/myfig}| can not process by default because \pdfTeX\ usually does not have permission to write into folders that are higher in the heirarchy than the main document. This can be worked around presently in two different ways: (although maybe only for Mac~OS~X and Linux)
 \begin{enumerate}
@@ -719,10 +728,7 @@ One problem that \pkg{pstool} does not solve on its own is the inclusion of imag
 \end{enumerate}
 
 \section{Package information}
-The most recent publicly released version of \pkg{pstool} is available at \textsc{CTAN}:\\
-\centerline{\url{http://tug.ctan.org/pkg/pstool/}}\\ 
-Historical and developmental versions are available at GitHub:\\ \centerline{\url{http://github.com/wspr/pstool/}}\\
-While general feedback at \url{wspr81@gmail.com} is welcomed, specific bugs should be reported through the issue tracker at GitHub: \url{http://github.com/wspr/pstool/issues}.
+The most recent publicly released version of \pkg{pstool} is available at \textsc{ctan}: \url{http://tug.ctan.org/pkg/pstool/}. Historical and developmental versions are available at GitHub: \url{http://github.com/wspr/pstool/}. While general feedback via email is welcomed, specific bugs or feature requests should be reported through the issue tracker: \url{http://github.com/wspr/pstool/issues}.
 
 \subsection{Licence}
 
