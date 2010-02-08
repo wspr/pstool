@@ -193,7 +193,10 @@ v1.3, July 2009:
     \parbox{0.8\linewidth}{%
       \color{red}\raggedright\ttfamily\scshape\small
       An error occured processing graphic 
-      \upshape`\pstool@path\pstool@filestub'%
+      \upshape`%
+        \detokenize\expandafter{\pstool@path}%
+        \detokenize\expandafter{\pstool@filestub}%
+      '%
     }%
   }%
 }
