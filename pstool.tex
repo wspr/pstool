@@ -2,7 +2,7 @@
 \begin{filecontents*}{README.txt}
 __________________
 The pstool package
-v1.3
+v1.4
 
 A package like "pst-pdf" for processing PostScript graphics
 with psfrag labels within pdfLaTeX documets. The difference
@@ -20,10 +20,14 @@ except pstool.ins (and the PDF file, obviously).
 Please see the PDF documentation for further information.
 
 Will Robertson & Zebb Prime
-Copyright 2008-2009
+Copyright 2008-2010
 
 ____________________
 Brief change history
+
+v1.4, November 2010:  
+  - More robust parsing of the main input file to read in the preamble.
+    Therefore, \EndPreamble is now required much less often.
 
 v1.3, July 2009: 
   - [bitmap] option to control compression of bitmap graphics,
@@ -33,18 +37,29 @@ v1.3, July 2009:
 \end{filecontents*}
 
 \begin{filecontents}{pstool.sty}
-\ProvidesPackage{pstool}[2009/07/17 v1.3
+\ProvidesPackage{pstool}[2010/11/14 v1.4
   Wrapper for processing PostScript/psfrag figures]
 
 % External packages
 \RequirePackage{%
   catchfile,color,ifpdf,ifplatform,
-  graphicx,pdftexcmds,psfrag,suffix,xkeyval}
+  graphicx,pdftexcmds,psfrag,suffix,trimspaces,xkeyval}
+
+% Add an additional command before trimspaces.sty is updated formally:
+\providecommand*{\trim@multiple@spaces@in}[1]{% 
+  \let\trim@temp#1% 
+  \trim@spaces@in#1% 
+  \ifx\trim@temp#1% 
+  \else 
+    \expandafter\trim@multiple@spaces@in\expandafter#1% 
+  \fi 
+}
 
 % Allocations
 \newif\if@pstool@pdfcrop@
 \newif\if@pstool@verbose@
 \newwrite\pstool@out
+\newread\pstool@mainfile@ior
 
 % These are cute
 \providecommand\OnlyIfFileExists[2]{\IfFileExists{#1}{#2}{}}
@@ -374,25 +389,48 @@ v1.3, July 2009:
   \endgroup
 }
 
+
+% For what's coming next.
+\edef\@begindocument@str{\detokenize\expandafter{\string\begin{document}}}
+\edef\@endpreamble@str{\string\EndPreamble}
+\def\in@first#1#2{\in@{NEVEROCCUR!#1}{NEVEROCCUR!#2}}
+
+
 % The file that is written for processing is set up to read the preamble of the original document and set the graphic on an empty page (cropping to size is done either here with \pkg{preview} or later with \pkg{pdfcrop}).
 \def\pstool@write@processfile#1#2#3{%
   \immediate\openout\pstool@out #2\pstool@suffix.tex\relax
-  \immediate\write\pstool@out{%
-% Input the main document; redefine the document environment so only the preamble is read:
-    \unexpanded{%
-      \pdfoutput=0^^J% force DVI mode if not already
-      \let\origdocument\document^^J%
-      \let\EndPreamble\endinput^^J%
-      \def\document{\endgroup\endinput}^^J%
-    }%
-    \noexpand\input{\jobname}^^J%
+%
+% Scan the main document line by line; print preamble into auxiliary file until the document begins or \cs{EndPreamble} is found:
+  \endlinechar=-1
+  \def\@tempa{\pdfoutput=0}% 
+  \in@false
+  \openin\pstool@mainfile@ior "\jobname"\relax 
+  \@whilesw \unless\ifin@ \fi {
+    \immediate\write\pstool@out{\unexpanded\expandafter{\@tempa}}%
+    \readline\pstool@mainfile@ior to\@tempa 
+    \let\@tempc\@tempa
+    \trim@multiple@spaces@in\@tempa
+    \expandafter\expandafter\expandafter\in@first
+    \expandafter\expandafter\expandafter{%
+    \expandafter\@begindocument@str
+    \expandafter}%
+    \expandafter{\@tempa}%
+    \unless\ifin@
+      \expandafter\expandafter\expandafter\in@first
+      \expandafter\expandafter\expandafter{%
+      \expandafter\@endpreamble@str
+      \expandafter}%
+      \expandafter{\@tempa}%
+    \fi
+  }
+  \closein\pstool@mainfile@ior
 %
 % Now the preamble of the process file: (restoring document's original meaning; empty \cmd\pagestyle\ removes the page number)
+  \immediate\write\pstool@out{%
     \if@pstool@pdfcrop@\else
       \noexpand\usepackage[active,tightpage]{preview}^^J%
     \fi
     \unexpanded{%
-      \let\document\origdocument^^J%
       \pagestyle{empty}^^J%
     }%
 %
