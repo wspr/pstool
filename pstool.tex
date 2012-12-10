@@ -5,7 +5,7 @@ The pstool package
 v1.4
 
 A package like "pst-pdf" for processing PostScript graphics
-with psfrag labels within pdfLaTeX documets. The difference
+with psfrag labels within pdfLaTeX documents. The difference
 with this package is that every graphic is compiled individually,
 drastically speeding up compilation time when only a single
 figure needs re-processing.
@@ -497,17 +497,6 @@ v1.3, July 2009:
     \OnlyIfFileExists{#2.eps}{%
       \PackageWarning{pstool}{Graphic "#2.eps" exists but "#2-psfrag.eps" is being used}%
     }%
-  }{%
-    \IfFileExists{#2.eps}{%
-      \edef\pstool@eps{#2}%
-    }{%
-      \PackageError{pstool}{%
-        No graphic "#2.eps" or "#2-psfrag.eps" found%
-      }{%
-        Check the path and whether the file exists.%
-      }%
-    }%
-  }%
   % Find the .tex file to use.
   \IfFileExists{#2-psfrag.tex}{%
     \edef\pstool@tex{#2-psfrag.tex}%
@@ -529,12 +518,23 @@ v1.3, July 2009:
       }%
     }%
   }%
-  \ifx\pstool@tex\@empty
-    \pstool#3[#1]{\pstool@eps}{#4}%
-  \else
-    \expandafter\pstool@@@psfragfig
-      \expandafter{\pstool@tex}{#3[#1]}{#4}%
-  \fi
+    \ifx\pstool@tex\@empty
+      \pstool#3[#1]{\pstool@eps}{#4}%
+    \else
+      \expandafter\pstool@@@psfragfig
+        \expandafter{\pstool@tex}{#3[#1]}{#4}%
+    \fi
+  }{%
+    \IfFileExists{#2.eps}{%
+      \edef\pstool@eps{#2}%
+    }{%
+      \PackageError{pstool}{%
+        No graphic "#2.eps" or "#2-psfrag.eps" found%
+      }{%
+        Check the path and whether the file exists.%
+      }%
+    }%
+  }%
 }
 
 % Break out the separate function in order to expand |\pstool@tex| before writing it.
