@@ -98,6 +98,14 @@ v1.3, July 2009:
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
 \ExecuteOptionsX{suffix={-pstool}}
 
+% Under windows, using an '=' character in the options passed to ps2pdf causes problems.
+% It's better to use a '#' character (but that initiates a comment under *nix so there we use '=').
+% -- Heinrich Kruger
+\edef\pstool@eq{\ifwindows\string#\else\string=\fi}
+
+% Remove the quotes around the ps2pdf options (that also seems to cause problems under Windows)
+% -- Heinrich Kruger
+
 % There is an implicit |\space| after the bitmap options.
 \define@choicekey*{pstool.sty}{bitmap}
     [\@tempa\@tempb]{auto,lossless,lossy}{%
@@ -105,17 +113,17 @@ v1.3, July 2009:
     \let\pstool@bitmap@opts\@empty
   \or
     \def\pstool@bitmap@opts{%
-      "-dAutoFilterColorImages=false"
-      "-dAutoFilterGrayImages=false"
-      "-dColorImageFilter=/FlateEncode"
-      "-dGrayImageFilter=/FlateEncode" % space
+      -dAutoFilterColorImages\pstool@eq false
+      -dAutoFilterGrayImages\pstool@eq false
+      -dColorImageFilter\pstool@eq/FlateEncode
+      -dGrayImageFilter\pstool@eq/FlateEncode % space
     }
   \or
     \def\pstool@bitmap@opts{%
-      "-dAutoFilterColorImages=false"
-      "-dAutoFilterGrayImages=false"
-      "-dColorImageFilter=/DCTEncode"
-      "-dGrayImageFilter=/DCTEncode" % space
+      -dAutoFilterColorImages\pstool@eq false
+      -dAutoFilterGrayImages\pstool@eq false
+      -dColorImageFilter\pstool@eq/DCTEncode
+      -dGrayImageFilter\pstool@eq/DCTEncode % space
     }
   \fi
 }
@@ -134,7 +142,7 @@ v1.3, July 2009:
 \ExecuteOptionsX{
   latex-options={},
   dvips-options={},
-  ps2pdf-options={"-dPDFSETTINGS=/prepress"},
+  ps2pdf-options={-dPDFSETTINGS\pstool@eq/prepress},
   pdfcrop-options={}
 }
 
