@@ -41,9 +41,13 @@ v1.3, July 2009:
   Wrapper for processing PostScript/psfrag figures]
 
 % External packages
+%
+% We need \pkg{filemod} to properly compare file tumestamps.
+% This means we don't need \pkg{pdftexcmds} anymore.
+% -- Heinrich Kruger
 \RequirePackage{%
-  catchfile,color,ifpdf,ifplatform,
-  graphicx,pdftexcmds,psfrag,suffix,trimspaces,xkeyval}
+  catchfile,color,ifpdf,ifplatform,filemod,
+  graphicx,psfrag,suffix,trimspaces,xkeyval}
 
 % Add an additional command before trimspaces.sty is updated formally:
 \providecommand*{\trim@multiple@spaces@in}[1]{% 
@@ -254,16 +258,17 @@ v1.3, July 2009:
 }
 \def\pstool@statusfail{\par }% what results when \TeX\ reads an empty file
 
+% Don't need this anymore, we'll use |\filemodCmp| instead. -- Heinrich Kruger
 % \subsection{File age detection}
-\def\pstool@IfnewerEPS{%
-  \ifnum\pdf@strcmp{\pdf@filemoddate{\pstool@path\pstool@filestub.pdf}}
-                   {\pdf@filemoddate{\pstool@path\pstool@filestub.eps}}
-        < \z@
-    \expandafter\@firstoftwo
-  \else
-    \expandafter\@secondoftwo
-  \fi
-}
+%\def\pstool@IfnewerEPS{%
+%  \ifnum\pdf@strcmp{\pdf@filemoddate{\pstool@path\pstool@filestub.pdf}}
+%                   {\pdf@filemoddate{\pstool@path\pstool@filestub.eps}}
+%        < \z@
+%    \expandafter\@firstoftwo
+%  \else
+%    \expandafter\@secondoftwo
+%  \fi
+%}
 
 % Grab filename and filepath. Always need a relative path to a filename even if it's in the same directory.
 \def\pstool@getpaths#1{%
@@ -300,10 +305,13 @@ v1.3, July 2009:
 
 % For regular operation, which processes the figure only if
 % the command is starred, or the PDF doesn't exist.
+%
+% Use |\filemodCmp| instead of |\pstool@IfnewerEPS| -- Heinrich Kruger
 \newcommand\pstool@maybeprocess[3][]{%
   \pstool@getpaths{#2}%
   \IfFileExists{#2.pdf}{%
-    \pstool@IfnewerEPS{% needs info from |\pstool@getpaths|
+    \filemodCmp{\pstool@path\pstool@filestub.eps}{\pstool@path\pstool@filestub.pdf}{%
+%    \pstool@IfnewerEPS{% needs info from |\pstool@getpaths|
       \pstool@process{#1}{#3}%
     }{%
       \pstool@includegraphics{#2}%
