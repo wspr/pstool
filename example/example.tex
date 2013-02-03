@@ -4,18 +4,23 @@
 \usepackage{pstool}
 \input macros.tex
 \EndPreamble
-\begin{document}
+\usepackage{expl3}\begin{document} % hello
 
-External macros: \a, \b, \c
+External macros: \a, \b, \c. These are defined in the preamble so when their definitions appear in the replacements below we know the preamble catching is working correctly.
 
-\psfragfig*[mode=nonstop]{trial}{%
+First: [Mp] below first arrow should be replaced by tiny red $M_\a$; in rectangle, should load [hb] replacement from \texttt{trial.tex} and replace it with $H_\b$ inheriting tiny+red from the previous definition.
+
+\fbox{\psfragfig*{trial}{%
   \color{red}
   \tiny
-  \psfrag{[Mp]}{$M_\a$!}%
-}
+  \psfrag{[Mp]}{$M_\a$}%
+}}
 
-\psfragfig[angle=45]{subdir/trial2}{%
+\clearpage
+In the second, the replacements should be plain and the whole image rotated 45 degrees.
+
+\fbox{\psfragfig*[angle=45]{subdir/trial2}{%
   \psfrag{[Mp]}{$Z_\b$}%
-}
+}}
 
 \end{document}
