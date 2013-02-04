@@ -771,11 +771,16 @@ Note that the |auto| and |lossy| outputs differ in quality; |lossy| is lower qua
 
 \subsection{The \cmd\EndPreamble\ command}
 
-At present, \pkg{pstool} scans the preamble of the main document by redefining |\begin{document}|, but this is rather fragile  because many classes and packages do their own redefining which overwrites \pkg{pstool}'s attempt. In this case, place the command \cmd\EndPreamble\ where-ever you'd like the preamble in the auxiliary processing to end (although is must be placed before |\begin{document}| for obvious reasons). This is also handy to bypass anything in the preamble that will never be required for the figures but which will slow down or otherwise conflict with the auxiliary processing.
+The \pkg{pstool} package scans the beginning of the main document to insert its preamble into each graphic that is converted.
+This feature hasn't been well-tested and there are certain cases in which it is known to fail.
+(For example, if \verb|\begin{document}| doesn't appear on a line by itself.)
+If you need to indicate the end of the preamble manually because this scanning has failed, place the command \cmd\EndPreamble\ where-ever you'd like the preamble in the auxiliary processing to end.
+This is also handy to bypass anything in the preamble that will never be required for the figures but which will slow down or otherwise conflict with the auxiliary processing.
 
 \subsection{Cross-reference limitations}
 
-The initial release of this package does not support cross-references within the \pkg{psfrag} labels of the included graphics. (If, say, you wish to refer to an equation number or a citation within a figure.)
+The current release of this package does not support cross-references within the \pkg{psfrag} labels of the included graphics.
+(If, say, you wish to refer to an equation number or a citation within a figure.)
 
 \subsection{A note on file paths}
 
