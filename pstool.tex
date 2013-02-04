@@ -2,7 +2,7 @@
 \begin{filecontents*}{README.txt}
 __________________
 The pstool package
-v1.4
+v1.4a
 
 A package like "pst-pdf" for processing PostScript graphics
 with psfrag labels within pdfLaTeX documents. The difference
@@ -20,14 +20,21 @@ except pstool.ins (and the PDF file, obviously).
 Please see the PDF documentation for further information.
 
 Will Robertson & Zebb Prime
-Copyright 2008-2010
+Copyright 2008-2013
 
 ____________________
 Brief change history
 
+v1.4a, February 2013:
+  - Hopefully fix =/# mixup in Windows ps2pdf options.
+    This could potentially break pstool for older MiKTeX/Windows releases; not sure.
+  - Use the filemod package to compare file datestamps.
+    Thanks to Heinrich Kruger for patches for both of these.
+
 v1.4, November 2010:  
   - More robust parsing of the main input file to read in the preamble.
     Therefore, \EndPreamble is now required much less often.
+  - Apparently unreleased to CTAN, oops :)
 
 v1.3, July 2009: 
   - [bitmap] option to control compression of bitmap graphics,
@@ -36,20 +43,21 @@ v1.3, July 2009:
 
 \end{filecontents*}
 
+
+
+
 \begin{filecontents}{pstool.sty}
 % TODO: convert this package into docstrip syntax.
+%
+% TODOTWO: convert this package into expl3 syntax (will save many lines of code).
 %    \begin{macrocode}
 \ProvidesPackage{pstool}[2010/11/14 v1.4
   Wrapper for processing PostScript/psfrag figures]
 
 % External packages
-%
-% We need \pkg{filemod} to properly compare file tumestamps.
-% This means we don't need \pkg{pdftexcmds} anymore.
-% -- Heinrich Kruger
 \RequirePackage{%
   catchfile,color,ifpdf,ifplatform,filemod,
-  graphicx,psfrag,suffix,trimspaces,xkeyval}
+  graphicx,psfrag,suffix,trimspaces,xkeyval,expl3}
 
 % Add an additional command before trimspaces.sty is updated formally:
 \providecommand*{\trim@multiple@spaces@in}[1]{% 
@@ -104,14 +112,6 @@ v1.3, July 2009:
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
 \ExecuteOptionsX{suffix={-pstool}}
 
-% Under windows, using an '=' character in the options passed to ps2pdf causes problems.
-% It's better to use a '#' character (but that initiates a comment under *nix so there we use '=').
-% -- Heinrich Kruger
-\edef\pstool@eq{\ifwindows\string#\else\string=\fi}
-
-% Remove the quotes around the ps2pdf options (that also seems to cause problems under Windows)
-% -- Heinrich Kruger
-
 % There is an implicit |\space| after the bitmap options.
 \define@choicekey*{pstool.sty}{bitmap}
     [\@tempa\@tempb]{auto,lossless,lossy}{%
@@ -119,17 +119,17 @@ v1.3, July 2009:
     \let\pstool@bitmap@opts\@empty
   \or
     \def\pstool@bitmap@opts{%
-      -dAutoFilterColorImages\pstool@eq false
-      -dAutoFilterGrayImages\pstool@eq false
-      -dColorImageFilter\pstool@eq/FlateEncode
-      -dGrayImageFilter\pstool@eq/FlateEncode % space
+      -dAutoFilterColorImages=false
+      -dAutoFilterGrayImages=false
+      -dColorImageFilter=/FlateEncode
+      -dGrayImageFilter=/FlateEncode % space
     }
   \or
     \def\pstool@bitmap@opts{%
-      -dAutoFilterColorImages\pstool@eq false
-      -dAutoFilterGrayImages\pstool@eq false
-      -dColorImageFilter\pstool@eq/DCTEncode
-      -dGrayImageFilter\pstool@eq/DCTEncode % space
+      -dAutoFilterColorImages=false
+      -dAutoFilterGrayImages=false
+      -dColorImageFilter=/DCTEncode
+      -dGrayImageFilter=/DCTEncode % space
     }
   \fi
 }
@@ -148,7 +148,7 @@ v1.3, July 2009:
 \ExecuteOptionsX{
   latex-options={},
   dvips-options={},
-  ps2pdf-options={-dPDFSETTINGS\pstool@eq/prepress},
+  ps2pdf-options={-dPDFSETTINGS=/prepress},
   pdfcrop-options={}
 }
 
@@ -268,18 +268,6 @@ v1.3, July 2009:
 }
 \def\pstool@statusfail{\par }% what results when \TeX\ reads an empty file
 
-% Don't need this anymore, we'll use |\filemodCmp| instead. -- Heinrich Kruger
-% \subsection{File age detection}
-%\def\pstool@IfnewerEPS{%
-%  \ifnum\pdf@strcmp{\pdf@filemoddate{\pstool@path\pstool@filestub.pdf}}
-%                   {\pdf@filemoddate{\pstool@path\pstool@filestub.eps}}
-%        < \z@
-%    \expandafter\@firstoftwo
-%  \else
-%    \expandafter\@secondoftwo
-%  \fi
-%}
-
 % Grab filename and filepath. Always need a relative path to a filename even if it's in the same directory.
 \def\pstool@getpaths#1{%
   \filename@parse{#1}%
@@ -316,12 +304,11 @@ v1.3, July 2009:
 % For regular operation, which processes the figure only if
 % the command is starred, or the PDF doesn't exist.
 %
-% Use |\filemodCmp| instead of |\pstool@IfnewerEPS| -- Heinrich Kruger
+% v1.4a: Use |\filemodCmp| instead of |\pstool@IfnewerEPS| -- Heinrich Kruger
 \newcommand\pstool@maybeprocess[3][]{%
   \pstool@getpaths{#2}%
   \IfFileExists{#2.pdf}{%
     \filemodCmp{\pstool@path\pstool@filestub.eps}{\pstool@path\pstool@filestub.pdf}{%
-%    \pstool@IfnewerEPS{% needs info from |\pstool@getpaths|
       \pstool@process{#1}{#3}%
     }{%
       \pstool@includegraphics{#2}%
@@ -386,6 +373,10 @@ v1.3, July 2009:
   \pstool@exe{dvips}{\pstool@path}{%
     dvips \if@pstool@verbose@\else -q \fi -Ppdf 
         \pstool@dvips@opts\space "\pstool@jobname.dvi"}%
+% Pre-process |ps2pdf| options for Windows (sigh):
+  \pstool@pspdf@opts@preprocess \pstool@bitmap@opts
+  \pstool@pspdf@opts@preprocess \pstool@pspdf@opts
+% Generate the PDF:
   \if@pstool@pdfcrop@
     \pstool@exe{ps2pdf}{\pstool@path}{%
       ps2pdf \pstool@bitmap@opts \pstool@pspdf@opts \space
@@ -398,6 +389,7 @@ v1.3, July 2009:
       ps2pdf \pstool@bitmap@opts \pstool@pspdf@opts \space
           "\pstool@jobname.ps" "\pstool@filestub.pdf"}%
   \fi
+% Finish up:
   \pstool@endprocess{%
     \pstool@cleanup
     \pstool@includegraphics{%
@@ -407,6 +399,14 @@ v1.3, July 2009:
   \endgroup
 }
 
+\ExplSyntaxOn
+\cs_new:Npn \pstool@pspdf@opts@preprocess #1
+ {
+  \ifwindows
+    \tl_replace_all:Nnn #1 {=} { \tl_to_str:N ## }  
+  \fi
+ }
+\ExplSyntaxOff
 
 % For what's coming next.
 \edef\@begindocument@str{\detokenize\expandafter{\string\begin{document}}}
@@ -752,10 +752,15 @@ The command line options passed to each program of the auxiliary processing can 
 \item[\pkgopt{pdfcrop-options=...}] (if applicable).
 \end{description}
 For the most part these will be unnecessary, although passing the correct options to |ps2pdf| can sometimes be a little obscure.\footnote{The manual is here: \url{http://pages.cs.wisc.edu/~ghost/doc/cvs/Ps2pdf.htm}} For example, I use the following for generating figures in my thesis:%
-\footnote{Note that each \texttt{ps2pdf} option must be quoted in Windows, which is unnecessary but does no harm in Linux and Mac~OS~X.}%
-\par{\centering|ps2pdf-options={"-dPDFSETTINGS=/prepress"}|\par}
+\par{\centering|ps2pdf-options={-dPDFSETTINGS=/prepress}|\par}
 This forces the `base fourteen' fonts to be embedded within the individual figure files, without which some printers and \textsc{pdf} viewers have trouble with the textual labels. In fact, from v1.3 of \pkg{pstool}, this option is now the default.
-Note that subsequent calls to \pkgopt{ps2pdf-options=...} will override the \pkg{pstool} default; use |ps2pdf-options={}| to chose |ps2pdf|'s defaults if necessary. 
+Note that subsequent calls to \pkgopt{ps2pdf-options=...} will override the \pkg{pstool} default; use |ps2pdf-options={}| to erase |ps2pdf|'s defaults if necessary.
+
+\textbf{New in 1.4a}: recently, the behaviour of |ps2pdf| has changed under Windows.
+In the past, options to |ps2pdf| needed to be quoted and use |=| to assign its options.
+Something about this has now changed, and it appears the best way to set |ps2pdf| options to use the |#| character instead; therefore, \pkg{pstool} attempts to be clever and replaces all instances of |=| within a |ps2pdf| option into |#| (under Windows only).
+No quotes are added.
+Windows uses can therefore continue to use |=| to set |ps2pdf| options and allow \pkg{pstool} to make the substitution; their documents will still compile correctly on Mac OS X or Linux platforms.
 
 \subsection{Compression of bitmap data}
 In the conversion using |ps2pdf|, bitmap images are stored using either lossy or lossless compression. The default behaviour for \pkg{pstool} is to force lossless compression, because we believe that to be the most commonly desired use case (you don't want scientific graphics rendered with possible compression artifacts). This behaviour can be adjusted using one of these options:\footnote{Technical details are given in section~\ref{sec:bitmapdetails}.}

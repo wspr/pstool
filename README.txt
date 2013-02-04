@@ -1,6 +1,6 @@
 __________________
 The pstool package
-v1.4
+v1.4a
 
 A package like "pst-pdf" for processing PostScript graphics
 with psfrag labels within pdfLaTeX documents. The difference
@@ -18,14 +18,21 @@ except pstool.ins (and the PDF file, obviously).
 Please see the PDF documentation for further information.
 
 Will Robertson & Zebb Prime
-Copyright 2008-2010
+Copyright 2008-2013
 
 ____________________
 Brief change history
 
+v1.4a, February 2013:
+  - Hopefully fix =/# mixup in Windows ps2pdf options.
+    This could potentially break pstool for older MiKTeX/Windows releases; not sure.
+  - Use the filemod package to compare file datestamps.
+    Thanks to Heinrich Kruger for patches for both of these.
+
 v1.4, November 2010:
   - More robust parsing of the main input file to read in the preamble.
     Therefore, \EndPreamble is now required much less often.
+  - Apparently unreleased to CTAN, oops :)
 
 v1.3, July 2009:
   - [bitmap] option to control compression of bitmap graphics,
