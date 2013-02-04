@@ -758,7 +758,7 @@ This forces the `base fourteen' fonts to be embedded within the individual figur
 Note that subsequent calls to \pkgopt{ps2pdf-options=...} will override the \pkg{pstool} default; use |ps2pdf-options={}| to chose |ps2pdf|'s defaults if necessary. 
 
 \subsection{Compression of bitmap data}
-In the conversion using |ps2pdf|, bitmap images are stored using either lossy or lossless compression. The default behaviour for \pkg{pstool} is to force lossless compression, because we believe that to be the most commonly desired use case (you don't want scientific graphics rendered with possible compression artifacts). This behaviour can be adjusted using one of these options:
+In the conversion using |ps2pdf|, bitmap images are stored using either lossy or lossless compression. The default behaviour for \pkg{pstool} is to force lossless compression, because we believe that to be the most commonly desired use case (you don't want scientific graphics rendered with possible compression artifacts). This behaviour can be adjusted using one of these options:\footnote{Technical details are given in section~\ref{sec:bitmapdetails}.}
 \begin{description}
 \item[\pkgopt{bitmap=auto}] do whatever |ps2pdf| does by default, which seems to be to use lossy compression most, if not all, of the time;
 \item[\pkgopt{bitmap=lossy}] bitmap images are compressed like \textsc{jpg}; this is only really suitable for photographs;
@@ -787,6 +787,28 @@ One problem that \pkg{pstool} does not solve on its own is the inclusion of imag
 |openout_any=a pdflatex ...|
 \item Create a symbolic link in the working directory to a point higher in the path: |ln -s ../../PhD ./PhD|, for example, and then refer to the graphics through this symbolic link.
 \end{enumerate}
+
+\subsection{Technical details on \texttt{ps2pdf}'s bitmap options}
+\label{sec:bitmapdetails}
+
+The \pkgopt{bitmap=auto} \pkg{pstool} option does not set any |ps2pdf| options; use this if you wish to set the following |ps2pdf| options manually.
+
+For both \pkgopt{bitmap=lossless} (default) and \pkgopt{bitmap=lossy}, the following |ps2pdf| options are set:
+\begin{verbatim}
+    -dAutoFilterColorImages=false
+    -dAutoFilterGrayImages=false
+\end{verbatim}
+Then for lossless image encoding, the following options are set:
+\begin{verbatim}
+    -dColorImageFilter=/FlateEncode
+    -dGrayImageFilter=/FlateEncode
+\end{verbatim}
+Instead for lossly encoding, these are the options used:
+\begin{verbatim}
+    -dColorImageFilter=/DCTEncode
+    -dGrayImageFilter=/DCTEncode
+\end{verbatim}
+If there are more |ps2pdf| options that you frequently use, please let me know and it may be a good idea to add \pkg{pstool} wrappers to make them more convenient.
 
 {\addtocontents{toc}{\protect\end{varwidth}\protect\hfill}}
 {\addtocontents{toc}{\protect\begin{varwidth}[t]{\protect\tocwidthB\protect\linewidth}}}
