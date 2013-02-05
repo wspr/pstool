@@ -403,7 +403,7 @@ v1.3, July 2009:
 \cs_new:Npn \pstool@pspdf@opts@preprocess #1
  {
   \ifwindows
-    \tl_replace_all:Nnn #1 {=} { \tl_to_str:N ## }  
+    \exp_args:NNnx \tl_replace_all:Nnn #1 {=} { \cs_to_str:N \# }
   \fi
  }
 \ExplSyntaxOff
