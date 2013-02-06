@@ -2,7 +2,7 @@
 \begin{filecontents*}{README.txt}
 __________________
 The pstool package
-v1.4a
+v1.5
 
 A package like "pst-pdf" for processing PostScript graphics
 with psfrag labels within pdfLaTeX documents. The difference
@@ -25,11 +25,12 @@ Copyright 2008-2013
 ____________________
 Brief change history
 
-v1.4a, February 2013:
+v1.5, February 2013:
   - Hopefully fix =/# mixup in Windows ps2pdf options.
     This could potentially break pstool for older MiKTeX/Windows releases; not sure.
   - Use the filemod package to compare file datestamps.
     Thanks to Heinrich Kruger for patches for both of these.
+  - Cross-references and citations within external graphics are now supported.
 
 v1.4, November 2010:  
   - More robust parsing of the main input file to read in the preamble.
@@ -46,12 +47,10 @@ v1.3, July 2009:
 
 
 
-\begin{filecontents}{pstool.sty}
-% TODO: convert this package into docstrip syntax.
-%
-% TODOTWO: convert this package into expl3 syntax (will save many lines of code).
+\begin{filecontents*}{pstool.sty}
+% TODO: convert this package into expl3 syntax (will save many lines of code).
 %    \begin{macrocode}
-\ProvidesPackage{pstool}[2010/11/14 v1.4
+\ProvidesPackage{pstool}[2013/02/05 v1.4a
   Wrapper for processing PostScript/psfrag figures]
 
 % External packages
@@ -74,6 +73,7 @@ v1.3, July 2009:
 \newif\if@pstool@verbose@
 \newwrite\pstool@out
 \newread\pstool@mainfile@ior
+\newread\pstool@auxfile@ior
 
 % These are cute
 \providecommand\OnlyIfFileExists[2]{\IfFileExists{#1}{#2}{}}
@@ -107,7 +107,7 @@ v1.3, July 2009:
 \ExecuteOptionsX{mode=batch}
 
 \DeclareOptionX{cleanup}{\def\pstool@rm@files{#1}}
-\ExecuteOptionsX{cleanup={.tex,.dvi,.ps,.pdf,.log,.aux}}
+\ExecuteOptionsX{cleanup={.tex,.dvi,.ps,.pdf,.log}}
 
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
 \ExecuteOptionsX{suffix={-pstool}}
@@ -189,6 +189,7 @@ v1.3, July 2009:
 % Command line abstractions between platforms:
 \edef\pstool@cmdsep{\ifwindows\string&\else\string;\fi\space}
 \edef\pstool@rm@cmd{\ifwindows del \else rm -- \fi}
+\edef\pstool@cp@cmd{\ifwindows copy \else cp -- \fi}
 
 % Delete a file if it exists:\\
 % |#1|: path\\
@@ -220,12 +221,18 @@ v1.3, July 2009:
 \def\pstool@error{%
   \fbox{%
     \parbox{0.8\linewidth}{%
-      \color{red}\raggedright\ttfamily\scshape\small
-      An error occured processing graphic 
+      \color{red}\centering\ttfamily\scshape\small
+      An error occured processing graphic:\\
       \upshape`%
         \detokenize\expandafter{\pstool@path}%
-        \detokenize\expandafter{\pstool@filestub}%
-      '%
+        \detokenize\expandafter{\pstool@filestub}.eps%
+      '\\\bigskip
+      \tiny
+      Check the log file for compilation errors:\\
+      `%
+        \detokenize\expandafter{\pstool@path}%
+        \detokenize\expandafter{\pstool@filestub}-pstool.log%
+      '\\
     }%
   }%
 }
@@ -389,14 +396,46 @@ v1.3, July 2009:
       ps2pdf \pstool@bitmap@opts \pstool@pspdf@opts \space
           "\pstool@jobname.ps" "\pstool@filestub.pdf"}%
   \fi
-% Finish up:
+% Finish up: (implies success!)
   \pstool@endprocess{%
     \pstool@cleanup
     \pstool@includegraphics{%
       \pstool@path\pstool@filestub}%
+% Emulate |\include| and have the main document load the auxiliary aux file, in a manner of speaking:
+    \pstool@write@aux
   }%
   \pstool@echo@verbose{^^J=== pstool: end processing ===^^J}%
   \endgroup
+}
+
+\newif\if@pstool@write@aux
+
+\newcommand\pstool@write@aux{%
+  \endlinechar=-1
+  \@tempswatrue 
+  \@pstool@write@auxfalse
+  \in@false
+  \openin \pstool@auxfile@ior "\pstool@path\pstool@jobname.aux"\relax 
+  \@whilesw \if@tempswa \fi {%
+    \readline \pstool@auxfile@ior to \@tempa 
+    \ifeof \pstool@auxfile@ior
+      \@tempswafalse
+    \else
+      \edef\@tempb{\detokenize\expandafter{\pstool@auxmarker@text/}}%
+      \ifx\@tempa\@tempb
+        \@tempswafalse
+      \else
+        \if@pstool@write@aux
+          \immediate\write\@mainaux{\unexpanded\expandafter{\@tempa}}%
+        \fi
+        \edef\@tempb{\detokenize\expandafter{\pstool@auxmarker@text*}}%
+        \ifx\@tempa\@tempb
+          \@pstool@write@auxtrue
+        \fi
+      \fi
+    \fi
+  }
+  \closein \pstool@auxfile@ior  
 }
 
 \ExplSyntaxOn
@@ -413,17 +452,39 @@ v1.3, July 2009:
 \edef\@endpreamble@str{\string\EndPreamble}
 \def\in@first#1#2{\in@{NEVEROCCUR!#1}{NEVEROCCUR!#2}}
 
+\usepackage{ted}
+
+% We need to cache the aux file, so here goes.
+% This is because the aux file is cleared for writing after |\begin{document}|.
+\IfFileExists{\jobname.oldaux}{\immediate\write18{\pstool@rm@cmd \jobname.oldaux}}{}
+\immediate\write18{\pstool@cp@cmd \jobname.aux \jobname.oldaux}
+\AtEndDocument{\immediate\write18{\pstool@rm@cmd \jobname.oldaux}}
+
+\edef\pstool@auxmarker#1{\string\@percentchar\space <#1PSTOOLLABELS>}
+\edef\pstool@auxmarker@text#1{\@percentchar <#1PSTOOLLABELS>}
 
 % The file that is written for processing is set up to read the preamble of the original document and set the graphic on an empty page (cropping to size is done either here with \pkg{preview} or later with \pkg{pdfcrop}).
 \def\pstool@write@processfile#1#2#3{%
+% Put down a label so we can pass through the current page number:
+  \edef\pstool@label{pstool-\pstool@path\pstool@filestub}%
+  \protected@write\@auxout{}%
+    {\string\newlabel{\pstool@label}{{\@currentlabel}{\the\c@page}}}%
   \immediate\openout\pstool@out #2\pstool@suffix.tex\relax
+% And copy the main file's bbl file too:
+% (necessary for biblatex)
+\IfFileExists{\jobname.bbl}{%
+  \IfFileExists{\pstool@path\pstool@jobname.bbl}{%
+    \immediate\write18{\pstool@rm@cmd \pstool@path\pstool@jobname.bbl}%
+  }{}%
+}{}%
+\immediate\write18{\pstool@cp@cmd \jobname.bbl \pstool@path\pstool@jobname.bbl}%
 %
 % Scan the main document line by line; print preamble into auxiliary file until the document begins or \cs{EndPreamble} is found:
   \endlinechar=-1
-  \def\@tempa{\pdfoutput=0}% 
+  \def\@tempa{\pdfoutput=0\relax}% 
   \in@false
   \openin\pstool@mainfile@ior "\jobname"\relax 
-  \@whilesw \unless\ifin@ \fi {
+  \@whilesw \unless\ifin@ \fi {%
     \immediate\write\pstool@out{\unexpanded\expandafter{\@tempa}}%
     \readline\pstool@mainfile@ior to\@tempa 
     \let\@tempc\@tempa
@@ -443,18 +504,32 @@ v1.3, July 2009:
   }
   \closein\pstool@mainfile@ior
 %
-% Now the preamble of the process file: (restoring document's original meaning; empty \cmd\pagestyle\ removes the page number)
+% Now the preamble of the process file:
   \immediate\write\pstool@out{%
     \if@pstool@pdfcrop@\else
       \noexpand\usepackage[active,tightpage]{preview}^^J%
     \fi
     \unexpanded{%
-      \pagestyle{empty}^^J%
+      \pagestyle{empty}^^J% remove the page number
     }%
+% Sort out the page numbering:
+    \expandafter\ifx\csname r@\pstool@label\endcsname\relax\else
+      \noexpand\makeatletter
+      \def\noexpand\thepage{\unexpanded\expandafter{\thepage}}%
+      \noexpand\makeatother
+      \noexpand\setcounter{page}{%
+        \expandafter\expandafter\expandafter
+          \@secondoftwo\csname r@\pstool@label\endcsname
+      }%
+    \fi
 %
 % And the document body to place the graphic on a page of its own:
+    \noexpand\makeatletter
+    \noexpand\@input{\jobname.oldaux}%
+    \noexpand\begin{document}^^J%
+    \unexpanded{\immediate\write\@mainaux}{\pstool@auxmarker*}%
+    \noexpand\makeatother
     \unexpanded{%
-      \begin{document}^^J%
       \centering\null\vfill^^J%
     }%
     \if@pstool@pdfcrop@\else
@@ -467,7 +542,8 @@ v1.3, July 2009:
     \if@pstool@pdfcrop@\else
       \noexpand\end{preview}^^J%
     \fi
-    \unexpanded{\vfill\end{document}}^^J%
+    \unexpanded{\makeatletter\immediate\write\@mainaux}{\pstool@auxmarker/}^^J%
+    \unexpanded{\makeatother\vfill\end{document}}^^J%
   }%
   \immediate\closeout\pstool@out
 }
@@ -567,7 +643,7 @@ v1.3, July 2009:
 }
 %    \end{macrocode}
 % That's it.
-\end{filecontents}
+\end{filecontents*}
 %%%%%%%%%1%%%%%%%%%2%%%%%%%%%3%%%%%%%%%4%%%%%%%%%5
 
 
@@ -728,11 +804,12 @@ However, when an inserted label protrudes from the natural bounding box of the f
 \footnote{\pkg{pdfcrop} requires a Perl installation under Windows, freely available from \url{http://www.activestate.com/Products/activeperl/index.plex}} This can be activated in \pkg{pstool} with the \pkgopt{crop=pdfcrop} package option. 
 
 \subsection{Temporary files \& cleanup}
-Each figure that is processed spawns an auxiliary \LaTeX\ compilation through \DVI$\to$\PS$\to$\PDF. This process is named after the name of the figure with an appended string suffix; the default is \pkgopt{suffix=\{-pstool\}}. All of these suffixed files are ``temporary'' in that they may be deleted once they are no longer needed.
+Each figure that is processed spawns an auxiliary \LaTeX\ compilation through \DVI$\to$\PS$\to$\PDF. This process is named after the name of the figure with an appended string suffix; the default is \pkgopt{suffix=\{-pstool\}}. Most of these suffixed files are ``temporary'' in that they may be deleted once they are no longer needed.
 
 As an example, if the figure is called |ex.eps|, the files that are created are |ex-pstool.tex|, |ex-pstool.dvi|, \dots. The \pkgopt{cleanup} package option declares via a list of filename suffixes which temporary files are to be deleted after processing.
 
-The default is \pkgopt{cleanup=\{.tex,\,.dvi,\,.ps,\,.pdf,\,.log,\,.aux\}}. To delete none of the temporary files, choose \pkgopt{cleanup=\{\}} (useful for debugging).
+The default is \pkgopt{cleanup=\{.tex,\,.dvi,\,.ps,\,.pdf,\,.log\}}. To delete none of the temporary files, choose \pkgopt{cleanup=\{\}} (useful for debugging).
+Note that if you want cross-referencing to work correctly for labels in figures, etc., then you must not delete the |.aux| file (see Section~\ref{xref}).
 
 \subsection{Interaction mode of the auxiliary processes}
 Each graphic echoes the output of its auxiliary process to the console window; unless you are trying to debug errors there is little interest in seeing this information. The behaviour of these auxiliary processes are governed globally by the \pkgopt{mode} package option, which takes the following parameters:
@@ -782,10 +859,18 @@ This feature hasn't been well-tested and there are certain cases in which it is 
 If you need to indicate the end of the preamble manually because this scanning has failed, place the command \cmd\EndPreamble\ where-ever you'd like the preamble in the auxiliary processing to end.
 This is also handy to bypass anything in the preamble that will never be required for the figures but which will slow down or otherwise conflict with the auxiliary processing.
 
-\subsection{Cross-reference limitations}
+\subsection{Cross-referencing}
+\label{xref}
 
-The current release of this package does not support cross-references within the \pkg{psfrag} labels of the included graphics.
-(If, say, you wish to refer to an equation number or a citation within a figure.)
+\textbf{New in v1.5}: \pkg{pstool} now supports cross-referencing within graphics.
+That is, you can use |\ref| and |\cite|, etc., within \pkg{psfrag} commands.
+In fact, references to page numbers within an external figure should now resolve correctly; e.g., you can use |\thepage| within a \pkg{psfrag} command.
+(I haven't really tested, but this should allow any package that writes information to the |.aux| file and refers to the page number to work correctly.)
+
+The implementation to achieve this is somewhat convoluted and difficult to extend, but the user interface should work just as you would expect, mostly.
+The main gotcha to keep in mind is that when cross-referencing is used, the graphics will need multiple compilations to resolve all the cross-references properly.
+Therefore, I recommend when setting such figures up in your document to use the |\psfragfig*| command, which forces graphics compilation every time, and remove the star only when you're sure the graphic is now correct.
+Alternatively, don't worry about the resolving of the cross-references until the very end, and then load the package with the \pkgopt{process=all} option.
 
 \subsection{A note on file paths}
 

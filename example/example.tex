@@ -1,26 +1,86 @@
 
-\documentclass[a5paper,12pt]{memoir}
+\documentclass[12pt]{memoir}
 \usepackage{color}
-\usepackage{pstool}
+\usepackage[cleanup={}]{pstool}
 \input macros.tex
+
+\newif\ifNAT
+\NATtrue
+\ifNAT
+  \usepackage{natbib}
+\else
+  \usepackage{biblatex}
+  \bibliography{xampl}
+\fi
+
 \EndPreamble
 \usepackage{expl3}\begin{document} % hello
 
-External macros: \a, \b, \c. These are defined in the preamble so when their definitions appear in the replacements below we know the preamble catching is working correctly.
+\title{\textsf{pstool} example document}
+\maketitle
 
-First: [Mp] below first arrow should be replaced by tiny red $M_\a$; in rectangle, should load [hb] replacement from \texttt{trial.tex} and replace it with $H_\b$ inheriting tiny+red from the previous definition.
+This is an example document for the \textsf{pstool} package. It's grown rather convoluted since I use it for testing some of the more arcane features of the package.
 
+There are some external macros defined in the file \texttt{macros.tex}: \verb|\a| $\to$ \a, \verb|\b| $\to$ \b, \verb|\c| $\to$ \c. These are defined in the preamble so when their definitions appear in the replacements below we know the preamble catching is working correctly.
+
+The same figure is used for all the examples; only one of its labels is being replaced by default by its associated \verb|.tex| file.
+
+\newpage
+
+First example: the style is defined as tiny+red, so all labels in the graphic will inherit this. The [Mp] label below first arrow should be replaced by tiny red $M_\a$; in rectangle,  [hb] label replacement $H_\b$ comes from \texttt{trial.tex}.
+
+\begin{center}
 \fbox{\psfragfig*{trial}{%
   \color{red}
   \tiny
   \psfrag{[Mp]}{$M_\a$}%
+  \psfrag{[epb]}{\cite{article-full}}%
 }}
+\end{center}
+
+Also, a citation is being used, and this should work for most \LaTeX\ bibliography packages.
 
 \clearpage
 In the second, the replacements should be plain and the whole image rotated 45 degrees.
+This image comes from a subdirectory so we know that works correctly.
+The subscript on $Z$ should be the current page number and a different citation is used here.
 
+\begin{center}
 \fbox{\psfragfig*[angle=45]{subdir/trial2}{%
-  \psfrag{[Mp]}{$Z_\b$}%
+  \psfrag{[Mp]}{$Z_{\thepage}$}%
+  \psfrag{[epb]}{\cite{incollection-full}}%
 }}
+\end{center}
+
+
+\frontmatter
+hello this is a filler page
+\begin{equation}
+a=b+c\label{eq1}
+\end{equation}
+\begin{equation}
+a=b+c\label{eq2}
+\end{equation}
+\begin{equation}
+a=b+c\label{eq3}
+\end{equation}
+
+\newpage
+In the third, hopefully the scale command works.
+Here we are referencing an equation from the previous page in the $Z$ subscript and the current page number should show up in there too.
+
+\begin{center}
+\fbox{\psfragfig*[scale=0.5]{trial2}{%
+  \psfrag{[Mp]}{$Z_{(\ref{eq3})}$}%
+  \psfrag{[ev]}{\thepage}
+}}
+\end{center}
+
+\ifNAT
+  \bibliographystyle{abbrvnat}
+  \bibliography{xampl}
+\else
+  \printbibliography
+\fi
 
 \end{document}
