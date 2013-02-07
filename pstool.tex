@@ -49,14 +49,15 @@ v1.3, July 2009:
 
 \begin{filecontents*}{pstool.sty}
 % TODO: convert this package into expl3 syntax (will save many lines of code).
-%    \begin{macrocode}
+
 \ProvidesPackage{pstool}[2013/02/05 v1.4a
   Wrapper for processing PostScript/psfrag figures]
 
-% External packages
-\RequirePackage{%
+% External packages:
+\RequirePackage{
   catchfile,color,ifpdf,ifplatform,filemod,
-  graphicx,psfrag,suffix,trimspaces,xkeyval,expl3}
+  graphicx,psfrag,suffix,trimspaces,xkeyval,expl3
+}
 
 % Add an additional command before trimspaces.sty is updated formally:
 \providecommand*{\trim@multiple@spaces@in}[1]{% 
@@ -68,14 +69,15 @@ v1.3, July 2009:
   \fi 
 }
 
-% Allocations
-\newif\if@pstool@pdfcrop@
-\newif\if@pstool@verbose@
+% \subsection{Allocations}
+\expandafter\newif\csname if@pstool@pdfcrop@\endcsname
+\expandafter\newif\csname if@pstool@verbose@\endcsname
+\expandafter\newif\csname if@pstool@write@aux\endcsname
+
 \newwrite\pstool@out
 \newread\pstool@mainfile@ior
 \newread\pstool@auxfile@ior
 
-% These are cute
 \providecommand\OnlyIfFileExists[2]{\IfFileExists{#1}{#2}{}}
 \providecommand\NotIfFileExists[2]{\IfFileExists{#1}{}{#2}}
 
@@ -112,7 +114,7 @@ v1.3, July 2009:
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
 \ExecuteOptionsX{suffix={-pstool}}
 
-% There is an implicit |\space| after the bitmap options.
+% There is an implicit \cs{space} after the bitmap options.
 \define@choicekey*{pstool.sty}{bitmap}
     [\@tempa\@tempb]{auto,lossless,lossy}{%
   \ifcase\@tempb
@@ -135,16 +137,11 @@ v1.3, July 2009:
 }
 \ExecuteOptionsX{bitmap=lossless}
 
-% \HideAllDefining
-% \Define*{latex-options}
-% \Define*{dvips-options}
-% \Define*{ps2pdf-options}
-% \Define*{pdfcrop-options}
 \DeclareOptionX{latex-options}{\def\pstool@latex@opts{#1}}
 \DeclareOptionX{dvips-options}{\def\pstool@dvips@opts{#1}}
 \DeclareOptionX{ps2pdf-options}{\def\pstool@pspdf@opts{#1}}
 \DeclareOptionX{pdfcrop-options}{\def\pstool@pdfcrop@opts{#1}}
-% \ResumeAllDefining
+
 \ExecuteOptionsX{
   latex-options={},
   dvips-options={},
@@ -170,10 +167,9 @@ v1.3, July 2009:
 }
 
 % \section{Macros}
-
 % Used to echo information to the console output.
-% Can't use |\typeout| because it's asynchronous with
-% any |\immediate\write18| processes (for some reason).
+% Can't use \cs{typeout} because it's asynchronous with
+% any \cs{immediate}\cs{write18} processes (for some reason).
 \def\pstool@echo#1{%
   \if@pstool@verbose@
     \pstool@echo@verbose{#1}%
@@ -191,9 +187,9 @@ v1.3, July 2009:
 \edef\pstool@rm@cmd{\ifwindows del \else rm -- \fi}
 \edef\pstool@cp@cmd{\ifwindows copy \else cp -- \fi}
 
-% Delete a file if it exists:\\
-% |#1|: path\\
-% |#2|: filename
+% Delete a file if it exists:
+% #1: path
+% #2: filename
 \newcommand\pstool@rm[2]{%
   \OnlyIfFileExists{#1#2}{%
     \immediate\write18{%
@@ -203,16 +199,18 @@ v1.3, July 2009:
 }
 
 % Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
-%
-% |#1|: `name' of process\\
-% |#2|: relative path where to execute the command\\
-% |#3|: the command itself
+% #1: `name' of process
+% #2: relative path where to execute the command
+% #3: the command itself
 \newcommand\pstool@exe[3]{%
   \pstool@echo{^^J=== pstool: #1 ===}%
   \pstool@shellexecute{#2}{#3}%
   \pstool@retrievestatus{#2}%
   \ifnum\pstool@status > \z@
-    \PackageWarning{pstool}{Execution failed during process:^^J\space\space#3^^JThis warning occurred}%
+    \PackageWarning{pstool}{%
+      Execution failed during process:^^J\space\space
+      #3^^JThis warning occurred%
+    }%
     \expandafter\pstool@abort
   \fi
 }
@@ -240,7 +238,7 @@ v1.3, July 2009:
 \def\pstool@abort#1\pstool@endprocess{\pstool@error\@gobble}
 \let\pstool@endprocess\@firstofone
 
-% It is necessary while executing commands on the shell to write the exit status to a temporary file to test for failures in processing. (If all versions of |pdflatex| supported input pipes, things might be different.)
+% It is necessary while executing commands on the shell to write the exit status to a temporary file to test for failures in processing. (If all versions of \texttt{pdflatex} supported input pipes, things might be different.)
 \def\pstool@shellexecute#1#2{%
   \immediate\write18{%
     cd "#1" \pstool@cmdsep
@@ -260,8 +258,8 @@ v1.3, July 2009:
 }
 \def\pstool@statusfile{pstool-statusfile.txt}
 
-% Read the exit status from the temporary file and delete it.\\
-% |#1| is the path\\
+% Read the exit status from the temporary file and delete it.
+% #1 is the path
 % Status is recorded in \cmd\pstool@status.
 \def\pstool@retrievestatus#1{%
   \CatchFileEdef{\pstool@status}{#1\pstool@statusfile}{}%
@@ -286,8 +284,13 @@ v1.3, July 2009:
   \let\pstool@filestub\filename@base
 }
 
+% The filename of the figure stripped of its path, if any:
+% (analogous to standard \cs{jobname})
+\def\pstool@jobname{\pstool@filestub\pstool@suffix}
+
+
 % \section{Command parsing}
-% User input is \cmd\pstool\ (with optional |*| or |!| suffix) which turns into one of the following three macros depending on the mode.
+% User input is \cmd\pstool\ (with optional \texttt{*} or \texttt{!} suffix) which turns into one of the following three macros depending on the mode.
 
 \newcommand\pstool@alwaysprocess[3][]{%
   \pstool@getpaths{#2}%
@@ -311,7 +314,7 @@ v1.3, July 2009:
 % For regular operation, which processes the figure only if
 % the command is starred, or the PDF doesn't exist.
 %
-% v1.4a: Use |\filemodCmp| instead of |\pstool@IfnewerEPS| -- Heinrich Kruger
+% v1.4a: Use \cs{filemodCmp} instead of \cs{pstool@IfnewerEPS} -- Heinrich Kruger
 \newcommand\pstool@maybeprocess[3][]{%
   \pstool@getpaths{#2}%
   \IfFileExists{#2.pdf}{%
@@ -326,7 +329,7 @@ v1.3, July 2009:
 }
 
 % \section{User commands}
-%  Finally, define \cmd\pstool\ as appropriate for the mode: (|all|, |none|, |auto|, respectively)
+%  Finally, define \cmd\pstool\ as appropriate for the mode: (\texttt{all}, \texttt{none}, \texttt{auto}, respectively)
 \ifpdf
   \newcommand\pstool{%
     \ifcase\pstool@process@choice\relax
@@ -357,9 +360,6 @@ v1.3, July 2009:
 
 % \section{The figure processing}
 
-% \cmd\pstool@filestub\ is the filename of the figure stripped of its path (if any)
-\def\pstool@jobname{\pstool@filestub\pstool@suffix}
-
 % And this is the main macro.
 \newcommand\pstool@process[2]{%
   \begingroup
@@ -376,11 +376,11 @@ v1.3, July 2009:
       -interaction=\pstool@mode\space
       \pstool@latex@opts\space
           "\pstool@jobname.tex"}%
-% Execute |dvips| in quiet mode if |latex| is not run in (non/error)stop mode:
+% Execute \texttt{dvips} in quiet mode if \texttt{latex} is not run in (non/error)stop mode:
   \pstool@exe{dvips}{\pstool@path}{%
     dvips \if@pstool@verbose@\else -q \fi -Ppdf 
         \pstool@dvips@opts\space "\pstool@jobname.dvi"}%
-% Pre-process |ps2pdf| options for Windows (sigh):
+% Pre-process \texttt{ps2pdf} options for Windows (sigh):
   \pstool@pspdf@opts@preprocess \pstool@bitmap@opts
   \pstool@pspdf@opts@preprocess \pstool@pspdf@opts
 % Generate the PDF:
@@ -401,14 +401,12 @@ v1.3, July 2009:
     \pstool@cleanup
     \pstool@includegraphics{%
       \pstool@path\pstool@filestub}%
-% Emulate |\include| and have the main document load the auxiliary aux file, in a manner of speaking:
+% Emulate \cs{include} (sort of) and have the main document load the auxiliary aux file, in a manner of speaking:
     \pstool@write@aux
   }%
   \pstool@echo@verbose{^^J=== pstool: end processing ===^^J}%
   \endgroup
 }
-
-\newif\if@pstool@write@aux
 
 \newcommand\pstool@write@aux{%
   \endlinechar=-1
@@ -452,10 +450,8 @@ v1.3, July 2009:
 \edef\@endpreamble@str{\string\EndPreamble}
 \def\in@first#1#2{\in@{NEVEROCCUR!#1}{NEVEROCCUR!#2}}
 
-\usepackage{ted}
-
 % We need to cache the aux file, so here goes.
-% This is because the aux file is cleared for writing after |\begin{document}|.
+% This is because the aux file is cleared for writing after \cs{begin{document}}.
 \IfFileExists{\jobname.oldaux}{\immediate\write18{\pstool@rm@cmd \jobname.oldaux}}{}
 \immediate\write18{\pstool@cp@cmd \jobname.aux \jobname.oldaux}
 \AtEndDocument{\immediate\write18{\pstool@rm@cmd \jobname.oldaux}}
@@ -557,10 +553,9 @@ v1.3, July 2009:
 \providecommand\EndPreamble{}
 
 % \section{User commands}
-%
-% These all support the suffixes |*| and |!|, so each user command is defined as a wrapper to \cmd\pstool.
+% These all support the suffixes \texttt{*} and \texttt{!}, so each user command is defined as a wrapper to \cmd\pstool.
 
-% for EPS figures with psfrag:
+% For EPS figures with psfrag:
 \newcommand\psfragfig[2][]{\pstool@psfragfig{#1}{#2}{}}
 \WithSuffix\newcommand\psfragfig*[2][]{%
   \pstool@psfragfig{#1}{#2}{*}%
@@ -569,7 +564,7 @@ v1.3, July 2009:
   \pstool@psfragfig{#1}{#2}{!}%
 }
 
-% Parse optional \<input definitions>
+% Parse optional input definitions:
 \newcommand\pstool@psfragfig[3]{%
   \@ifnextchar\bgroup{%
     \pstool@@psfragfig{#1}{#2}{#3}%
@@ -578,12 +573,12 @@ v1.3, July 2009:
   }%
 }
 
-% Search for both \<filename> and \<filename>|-psfrag| inputs.
+% Search for both `filename' and `filename'-psfrag inputs.
 %
-% |#1|: possible graphicx options\\
-% |#2|: graphic name (possibly with path)\\
-% |#3|: |\pstool| suffix (i.e., |!| or |*| or \<empty>)\\
-% |#4|: possible \pkg{psfrag} (or other) macros
+% #1: possible graphicx options
+% #2: graphic name (possibly with path)
+% #3: \cs{pstool} suffix (i.e., \texttt{!} or \texttt{*} or `empty')
+% #4: possible \pkg{psfrag} (or other) macros
 \newcommand\pstool@@psfragfig[4]{%
   % Find the .eps file to use.
   \IfFileExists{#2-psfrag.eps}{%
@@ -634,14 +629,13 @@ v1.3, July 2009:
   \fi
 }
 
-% Break out the separate function in order to expand |\pstool@tex| before writing it.
+% Break out the separate function in order to expand \cs{pstool@tex} before writing it.
 \newcommand\pstool@@@psfragfig[3]{%
   \pstool#2{\pstool@eps}{%
     \csname @input\endcsname{#1}%
     #3%
   }%
 }
-%    \end{macrocode}
 % That's it.
 \end{filecontents*}
 %%%%%%%%%1%%%%%%%%%2%%%%%%%%%3%%%%%%%%%4%%%%%%%%%5
@@ -725,8 +719,10 @@ v1.3, July 2009:
 This package defines the \cmd\psfragfig\ user command for including \EPS\ files that use \pkg{psfrag} features in a pdf\/\LaTeX\ document. The command \cmd\pstool\ can be used to define other commands with similar behaviour.
 \end{abstract}
 
+\vfil
 \tableofcontents
 
+\newpage
 \part{User documentation}
 
 \section{Introduction}
@@ -920,7 +916,137 @@ This package is freely modifiable and distributable under the terms and conditio
 \section{Code}
 
 \parindent=0pt
-\DocInput{pstool.sty}
+
+\ExplSyntaxOn
+
+\ior_new:N \pstool_doc_ior
+\seq_new:N \l_pstool_line_seq
+\tl_new:N \l_pstool_tl
+
+\tl_const:Nx \c_pstool_percent_str { \cs_to_str:N \% }
+\tl_const:Nx \c_pstool_lbrace_str { \cs_to_str:N \{ }
+\tl_const:Nx \c_pstool_rbrace_str { \cs_to_str:N \} }
+
+\cs_new:Nn \pstool_typeset_percent:
+ {
+  \group_begin:
+    \color{blue}
+    \scriptsize\bfseries
+    \c_pstool_percent_str
+  \group_end:
+ }
+
+\cs_new:Nn \pstool_doc_rescan_line:
+ {
+  \exp_args:Nno \tl_rescan:nn
+   {
+    \char_set_catcode_space:N \ % space
+    \char_set_catcode_letter:N \#
+   }
+   { \l_pstool_tl }
+ }
+
+\cs_new:Nn \pstool_doc_line_comment:
+ {
+  \seq_pop_left:NNTF \l_pstool_line_seq \l_pstool_tl
+   % Comment on a line of its own:
+   {
+    \group_begin:
+    \int_compare:nT { \g_pstool_indent_int > 0 } { \color{blue}\small }
+    \pstool_doc_rescan_line:
+    \group_end:
+    \par
+   }
+   % A completely empty line:
+   {
+    \vspace{\baselineskip}
+   }
+ }
+
+\int_new:N \g_pstool_indent_int
+\int_new:N \l_pstool_line_indent_int
+\dim_new:N \l_pstool_dim
+
+\cs_new:Nn \pstool_doc_line_code:
+ {
+  \int_zero:N \l_pstool_line_indent_int
+  \tl_map_inline:Nn \l_pstool_tl
+   {
+    \str_if_eq_x:nnT {##1} {\c_pstool_lbrace_str} { \int_gincr:N \l_pstool_line_indent_int }
+    \str_if_eq_x:nnT {##1} {\c_pstool_rbrace_str} { \int_gdecr:N \l_pstool_line_indent_int }
+   }
+  \exp_args:NNx \tl_if_in:NnT \l_pstool_tl { \token_to_str:N \if } { \int_gincr:N \l_pstool_line_indent_int }
+  \exp_args:NNx \tl_if_in:NnT \l_pstool_tl { \token_to_str:N \fi } { \int_gdecr:N \l_pstool_line_indent_int }
+
+  \int_compare:nT { \l_pstool_line_indent_int < 0 }
+   { \int_set:Nn \g_pstool_indent_int { \g_pstool_indent_int + \l_pstool_line_indent_int } }
+  \int_compare:nT { \g_pstool_indent_int > 0 }
+   { \prg_replicate:nn {\g_pstool_indent_int} {\quad} }
+  \int_compare:nT { \l_pstool_line_indent_int > 0 }
+   { \int_set:Nn \g_pstool_indent_int { \g_pstool_indent_int + \l_pstool_line_indent_int } }
+  \int_compare:nT { \g_pstool_indent_int < 0 }
+   { \int_zero:N \g_pstool_indent_int }  
+  
+  \texttt{\l_pstool_tl}
+  
+  \seq_pop_left:NNT \l_pstool_line_seq \l_pstool_tl
+   {
+    \makebox
+     {%
+      \pstool_typeset_percent:
+      \space
+      \small
+      \color{blue}%
+      \pstool_doc_rescan_line:
+     }
+   }
+  \par
+ }
+
+\errorcontextlines=999
+
+\ior_open:Nn \pstool_doc_ior {pstool.sty}
+\ior_str_map_inline:Nn \pstool_doc_ior
+ {
+  \exp_args:NNo \seq_set_split:Nnn \l_pstool_line_seq {\c_pstool_percent_str} {#1}
+  %\seq_show:N \l_pstool_line_seq
+  \seq_pop_left:NNT \l_pstool_line_seq \l_pstool_tl
+   {
+    \tl_if_empty:NTF \l_pstool_tl
+     {
+       \pstool_doc_line_comment:
+     }
+     {
+       \pstool_doc_line_code: 
+     }
+   }
+ }
+
+\ExplSyntaxOff
+
+%\DocInput{pstool.sty}
 
 {\addtocontents{toc}{\protect\end{varwidth}}}
 \end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
