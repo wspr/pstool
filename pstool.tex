@@ -150,6 +150,23 @@ v1.3, July 2009:
   pdfcrop-options={}
 }
 
+\DeclareOptionX{macro-file}{%
+  \IfFileExists{#1}
+    {\def\pstool@macrofile{#1}}
+    {%
+      \let\pstool@macrofile\@empty
+      \PackageError{pstool}{^^J\space\space%
+      No file `#1' found for "macro-file" package option.^^J
+      This warning occurred}
+    }
+}
+
+% Default:
+\IfFileExists{\jobname-pstool.tex}
+  {\edef\pstool@macrofile{\jobname-pstool.tex}}
+  {\let\pstool@macrofile\@empty}
+
+
 \ifpdf
   \ifshellescape\else
     \ExecuteOptionsX{process=none}
@@ -312,22 +329,48 @@ v1.3, July 2009:
   }
 \fi
 
-% For regular operation, which processes the figure only if
-% the command is starred, or the PDF doesn't exist.
-%
-% v1.4a: Use \cs{filemodCmp} instead of \cs{pstool@IfnewerEPS} -- Heinrich Kruger
-\newcommand\pstool@maybeprocess[3][]{%
-  \pstool@getpaths{#2}%
-  \IfFileExists{#2.pdf}{%
-    \filemodCmp{\pstool@path\pstool@filestub.eps}{\pstool@path\pstool@filestub.pdf}{%
-      \pstool@process{#1}{#3}%
-    }{%
-      \pstool@includegraphics{#2}%
-    }%
-  }{%
-    \pstool@process{#1}{#3}%
-  }%
-}
+% Process the figure when:
+% -- the PDF file doesn't exist, or
+% -- the EPS is newer than the PDF, or
+% -- the TeX file is new than the PDF.
+\ExplSyntaxOn
+
+\newcommand\pstool@maybeprocess[3][]
+ {
+  \pstool_if_should_process:nTF {#2}
+   { \pstool@process{#1}{#3} }
+   { \pstool@includegraphics{#2} }
+ }
+
+\prg_set_conditional:Nnn \pstool_if_should_process:n {TF}
+ {
+  \pstool@getpaths{#1}
+
+  \file_if_exist:nF { #1.pdf } { \use_i_delimit_by_q_stop:nw \prg_return_true: }
+
+  \filemodCmp {\pstool@path\pstool@filestub.eps}
+              {\pstool@path\pstool@filestub.pdf}
+              { \use_i_delimit_by_q_stop:nw \prg_return_true: } {}
+  
+  \exp_args:Nx \clist_map_inline:nn { \pstool@macrofile , \pstool@tex }
+  % empty entries are ignored in clist mappings, so no need to filter here
+   {
+    \filemodCmp {##1} {\pstool@path\pstool@filestub.pdf}
+     {
+      \clist_map_break:n { \use_i_delimit_by_q_stop:nw \prg_return_true: }
+     }
+     {}
+   }
+  
+  \filemodCmp {\pstool@path\pstool@filestub.tex}
+              {\pstool@path\pstool@filestub.pdf}
+              { \use_i_delimit_by_q_stop:nw \prg_return_true: } {}
+
+  \use_i_delimit_by_q_stop:nw \prg_return_false:
+  \q_stop
+ }
+\errorcontextlines=999
+\ExplSyntaxOff
 
 % \section{User commands}
 %  Finally, define \cmd\pstool\ as appropriate for the mode: (\texttt{all}, \texttt{none}, \texttt{auto}, respectively)
@@ -620,21 +663,28 @@ v1.3, July 2009:
   % Perform the actual processing step, skipping it entirely if an EPS file hasn't been found.
   % (In which case an error would have been called above; this is to clean up nicely in scrollmode, for example.)
   \ifx\pstool@eps\@undefined\else
-    \ifx\pstool@tex\@undefined
-      \pstool#3[#1]{\pstool@eps}{#4}%
-    \else
-      \expandafter\pstool@@@psfragfig
-        \expandafter{\pstool@tex}{#3[#1]}{#4}%
-    \fi
+    \edef\@tempa{%
+      \unexpanded{\pstool#3[#1]}{\pstool@eps}{%
+        \ifx\pstool@macrofile\@empty\else
+          \@percentchar Input main macro file:^^J
+          \unexpanded{\csname @input\endcsname}{\pstool@macrofile}%
+        \fi
+        \ifx\pstool@tex\@empty\else
+          \@percentchar Input macro file for this graphic:^^J
+          \unexpanded{\csname @input\endcsname}{\pstool@tex}%
+        \fi
+        \unexpanded{#4}%
+      }%
+    }\@tempa
   \fi
 }
 
+% Macro used to store the name of the graphic's macro file
+\let\pstool@tex\@empty
+
 % Break out the separate function in order to expand \cs{pstool@tex} before writing it.
 \newcommand\pstool@@@psfragfig[3]{%
-  \pstool#2{\pstool@eps}{%
-    \csname @input\endcsname{#1}%
-    #3%
-  }%
+
 }
 % That's it.
 \end{filecontents*}
