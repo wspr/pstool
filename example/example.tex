@@ -27,10 +27,10 @@ The same figure is used for all the examples; only one of its labels is being re
 
 \newpage
 
-First example: the style is defined as tiny+red, so all labels in the graphic will inherit this. The [Mp] label below first arrow should be replaced by tiny red $M_\a$; in rectangle,  [hb] label replacement $H_\b$ comes from \texttt{trial.tex}.
+First example: the style is defined as tiny+red, so all labels in the graphic will inherit this. The [Mp] label below first arrow should be replaced by tiny red $M_\a$; in rectangle,  [hb] label replacement $H_\b$ comes from \texttt{trial.tex}; near right dot, [epsv] label replacement $\epsilon_v$ comes from \texttt{example-pstool.tex}.
 
 \begin{center}
-\fbox{\psfragfig*{trial}{%
+\fbox{\psfragfig{trial}{%
   \color{red}
   \tiny
   \psfrag{[Mp]}{$M_\a$}%
@@ -46,7 +46,7 @@ This image comes from a subdirectory so we know that works correctly.
 The subscript on $Z$ should be the current page number and a different citation is used here.
 
 \begin{center}
-\fbox{\psfragfig*[angle=45]{subdir/trial2}{%
+\fbox{\psfragfig[angle=45]{subdir/trial2}{%
   \psfrag{[Mp]}{$Z_{\thepage}$}%
   \psfrag{[epb]}{\cite{incollection-full}}%
 }}
@@ -70,7 +70,7 @@ In the third, hopefully the scale command works.
 Here we are referencing an equation from the previous page in the $Z$ subscript and the current page number should show up in there too.
 
 \begin{center}
-\fbox{\psfragfig*[scale=0.5]{trial2}{%
+\fbox{\psfragfig[scale=0.5]{trial2}{%
   \psfrag{[Mp]}{$Z_{(\ref{eq3})}$}%
   \psfrag{[ev]}{\thepage}
 }}
