@@ -400,8 +400,7 @@ v1.3, July 2009:
 % Finish up: (implies success!)
   \pstool@endprocess{%
     \pstool@cleanup
-    \pstool@includegraphics{%
-      \pstool@path\pstool@filestub}%
+    \pstool@includegraphics{\pstool@path\pstool@filestub}%
 % Emulate \cs{include} (sort of) and have the main document load the auxiliary aux file, in a manner of speaking:
     \pstool@write@aux
   }%
@@ -507,40 +506,40 @@ v1.3, July 2009:
       \noexpand\usepackage[active,tightpage]{preview}^^J%
     \fi
     \unexpanded{%
-      \pagestyle{empty}^^J% remove the page number
+      \pagestyle{empty}^^J^^J% remove the page number
     }%
+    \noexpand\makeatletter^^J%
 % Sort out the page numbering:
     \expandafter\ifx\csname r@\pstool@label\endcsname\relax\else
-      \noexpand\makeatletter
-      \def\noexpand\thepage{\unexpanded\expandafter{\thepage}}%
-      \noexpand\makeatother
+      \def\noexpand\thepage{\unexpanded\expandafter{\thepage}}^^J%
       \noexpand\setcounter{page}{%
         \expandafter\expandafter\expandafter
           \@secondoftwo\csname r@\pstool@label\endcsname
-      }%
+      }^^J%
     \fi
 %
 % And the document body to place the graphic on a page of its own:
-    \noexpand\makeatletter
-    \noexpand\@input{\jobname.oldaux}%
+    \noexpand\@input{\jobname.oldaux}^^J^^J%
     \noexpand\begin{document}^^J%
-    \unexpanded{\immediate\write\@mainaux}{\pstool@auxmarker*}%
-    \noexpand\makeatother
+    \unexpanded{\immediate\write\@mainaux}{\pstool@auxmarker*}^^J%
+    \noexpand\makeatother^^J%
     \unexpanded{%
       \centering\null\vfill^^J%
     }%
+    ^^J%
     \if@pstool@pdfcrop@\else
       \noexpand\begin{preview}^^J%
     \fi
-    \unexpanded{#3^^J}% this is the "psfrag" material
+    \unexpanded{#3^^J}
     \noexpand\includegraphics
         [\unexpanded\expandafter{\XKV@rm}]
         {\pstool@filestub}^^J%
     \if@pstool@pdfcrop@\else
       \noexpand\end{preview}^^J%
     \fi
-    \unexpanded{\makeatletter\immediate\write\@mainaux}{\pstool@auxmarker/}^^J%
-    \unexpanded{\makeatother\vfill\end{document}}^^J%
+    ^^J%
+    \unexpanded{\vfill^^J^^J\makeatletter^^J\immediate\write\@mainaux}{\pstool@auxmarker/}^^J%
+    \unexpanded{\makeatother^^J\end{document}}^^J%
   }%
   \immediate\closeout\pstool@out
 }
