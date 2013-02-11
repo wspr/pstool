@@ -24,10 +24,11 @@ ____________________
 Brief change history
 
 v1.5, February 2013:
-  - Hopefully fix =/# mixup in Windows ps2pdf options.
-    This could potentially break pstool for older MiKTeX/Windows releases; not sure.
-  - Use the filemod package to compare file datestamps.
-    Thanks to Heinrich Kruger for patches for both of these.
+  - Fix =/# mixup in Windows ps2pdf options.
+  - Check the .tex file for newness when regenerating figures.
+  - Add [macro-file=...] for a global file to retrieve psfrag macros
+    (default is "\jobname-pstool.tex").
+    Thanks to Heinrich Kruger for suggestions for the above.
   - Cross-references and citations within external graphics are now supported.
 
 v1.4, November 2010:
