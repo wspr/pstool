@@ -799,39 +799,67 @@ Load the package as usual; no package options are required by default, but there
 Note that you do not need to load \pkg{psfrag} separately.
 You also do not need to load \pkg{graphicx} separately, but if you do so, ensure that you do \emph{not} include driver information (such as |[pdftex]|); this will play havoc with \pkg{pstool}'s automatic processing stage.
 
-The generic command provided by this package is\par
-{\centering
-  \cmd\pstool\ \oarg{options} \marg{filename} \marg{input definitions}
-\par}
-It converts the graphic \meta{filename}|.eps| to \meta{filename}|.pdf| through a unique \DVI$\to$\PS$\to$\PDF\ process for each graphic, using the preamble of the main document.
+\section{User commands}
+
+The low-level generic command provided by this package is
+\begin{description}
+  \item[\cmd\pstool\ \meta{suffix} \oarg{options} \marg{filename} \marg{input definitions}]
+\end{description}
+It converts the graphic \meta{filename}|.eps| to \meta{filename}|.pdf| with \pkg{psfrag} macros in \meta{filename}|.tex| through a unique \DVI$\to$\PS$\to$\PDF\ process for each graphic, using the preamble of the main document.
 The resulting graphic is then inserted into the document, with \meta{options} consisting of options for \pkg{graphicx} (e.g., \texttt{angle}, \texttt{scale}) or for \pkg{pstool} (as described later in Section~\ref{pkgopt}).
 Note that these optional arguments take effect in the \emph{processing stage}; if you change the \meta{options}, you must manually re-process the figure.
-The third argument to \cmd\pstool\ allows arbitrary \meta{input definitions} (such as \cmd\psfrag\ directives) to be inserted before the figure as it is processed. 
+The third argument to \cmd\pstool\ allows arbitrary \meta{input definitions} (such as \cmd\psfrag\ directives) to be inserted before the figure as it is processed.
 
-The command \cmd\pstool\ can take an optional |*| or |!| suffix to change the behaviour of the command:
-\begin{description}
-\item[\cs{pstool}] Process the graphic \meta{filename}|.eps| if \meta{filename}|.pdf| does not already exist, or if the \EPS\ file is \emph{newer} than the \PDF;
-\item[\cs{pstool*}] Always process this figure; and,
-\item[\cs{pstool!}] Never process this figure.
-\end{description}
-The behaviour in these three cases can be overridden globally by the package option \pkgopt{process} as described in section~\ref{process}.
+By default, \cs{pstool} processes the graphic \meta{filename}|.eps| if \meta{filename}|.pdf| does not already exist, or if the \EPS\ file is \emph{newer} than the \PDF.
+Additionally, if one or more macro files are associated with the graphic, they are also checked whether they have changed since the \PDF\ was generated.
+The macro file(s) can be defined per-graphic as for the \cs{psfragfig} command (see below), and/or globally as for the \pkgopt{macro-file=...} package option described in Section~\ref{macrofile}.
 
-It is useful to define higher-level commands based on \cmd\pstool\ for including specific types of \EPS\ graphics that take advantage of \pkg{psfrag}. As an example, this package defines the following command, which also supports the |*| or |!| suffixes described above.
+The \cmd\pstool\ command can take an optional |*| or |!| suffix to change its behaviour:
 \begin{description}
-\item[{\cmd\psfragfig\oarg{opts}\marg{filename}}] 
-This is the catch-all macro to support a wide range of graphics naming schemes. It inserts an \EPS\ file named either \meta{filename}|-psfrag.eps| or \meta{filename}|.eps| (in that order of preference), and uses \pkg{psfrag} definitions contained within either \meta{filename}|-psfrag.tex| or \meta{filename}|.tex|. 
+\item[\cs{pstool*}] Always process the figure;
+\item[\cs{pstool!}] Never process the figure.
 \end{description}
-This command can be used to insert figures produced by the \textsc{Mathematica} package \pkg{MathPSfrag} or the \textsc{Matlab} package \pkg{matlabfrag}. \cmd\psfragfig\ also accepts an optional braced argument:
+The behaviour in all three cases can be overridden globally by the package option \pkgopt{process} as described in section~\ref{process}.
+
+\subsection{The main \cs{psfragfig} command}
+
+It is useful to define higher-level commands based on \cmd\pstool\ for including specific types of \EPS\ graphics that take advantage of \pkg{psfrag}. The \pkg{pstool} package defines the following wrapper command \cmd\psfragfig, which also supports the |*| or |!| suffixes described above.
 \begin{description}
-\item[{\cmd\psfragfig\oarg{opts}\marg{filename}\marg{input definitions}}] 
-As above, but inserts the arbitrary code \meta{input definitions}, which will usually be used to define new or override existing \pkg{psfrag} commands.
+\item[{\cmd\psfragfig\ \meta{suffix} \oarg{opts} \marg{filename}}] 
 \end{description}
+This catch-all macro is designed to support a wide range of graphics naming schemes. It inserts an \EPS\ file named either \meta{filename}|-psfrag.eps| or \meta{filename}|.eps| (in that order of preference), and uses \pkg{psfrag} definitions contained within either \meta{filename}|-psfrag.tex| or \meta{filename}|.tex|. 
+The \cs{psfragfig} command can be used to insert figures produced by the \textsc{Mathematica} package \pkg{MathPSfrag} or the \textsc{Matlab} package \pkg{matlabfrag}. \cmd\psfragfig\ also accepts an optional braced argument:
+\begin{description}
+\item[{\cmd\psfragfig \meta{suffix} \oarg{opts} \marg{filename} \marg{input definitions}}] 
+\end{description}
+The command behaves as above, but also inserts the arbitrary code \meta{input definitions} into the processing stage; this additional code will usually be used to define new or override existing \pkg{psfrag} commands.
 
 \section{Package options}
 \label{pkgopt}
 
 Package options can be set or overridden at any time with \cmd\pstoolsetup\marg{pstool settings}.
 As mentioned in the previous section, these options also may be set in the optional argument to \cmd\pstool\ and \cmd\psfragfig, in which case they apply to that figure alone.
+
+\subsection{Macro file(s)}
+\label{macrofile}
+
+\textbf{New in v1.5}.
+As mentioned above, macro files can be used to store commands for processing \pkg{psfrag} graphics.
+If they change, these macro files can trigger a pre-compilation of the graphics.
+While usually the macro files will be defined per-graphic (such as \texttt{foo.eps} having a \texttt{foo-psfrag.tex} file), \pkg{pstool} will also load a `master' macro file for each graphic if it exists.
+
+\begin{description}
+  \item[\pkgopt{macro-file=...}]
+\end{description}
+The default is \pkgopt{macro-file=\meta{jobname}\texttt{-pstool.tex}}; if this file does not exist then no macro file is loaded.
+That is, if your document is called \texttt{thesis.tex}, the master macro file will be loaded in each graphic as \texttt{thesis-pstool.tex}, if it exists.
+
+This option is useful if you have macro definitions in a single file that are used by multiple graphics.
+By updating the definitions file, the graphics in the document will be automatically updated.
+(Note that this file can contain plain \LaTeX\ defintions; the \cs{psfrag} commands can still be located in the per-graphic \texttt{.tex} files.)
+
+To suppress the loading of a master macro file in all cases, use an empty argument for the package option, as in \pkgopt{macro-file=\char`\{\char`\}}.
+
 
 \subsection{Forcing/disabling graphics processing}
 \label{process}
@@ -879,7 +907,7 @@ For the most part these will be unnecessary, although passing the correct option
 This forces the `base fourteen' fonts to be embedded within the individual figure files, without which some printers and \textsc{pdf} viewers have trouble with the textual labels. In fact, from v1.3 of \pkg{pstool}, this option is now the default.
 Note that subsequent calls to \pkgopt{ps2pdf-options=...} will override the \pkg{pstool} default; use |ps2pdf-options={}| to erase |ps2pdf|'s defaults if necessary.
 
-\textbf{New in 1.4a}: recently, the behaviour of |ps2pdf| has changed under Windows.
+\textbf{New in 1.5}: recently, the behaviour of |ps2pdf| has changed under Windows.
 In the past, options to |ps2pdf| needed to be quoted and use |=| to assign its options.
 Something about this has now changed, and it appears the best way to set |ps2pdf| options to use the |#| character instead; therefore, \pkg{pstool} attempts to be clever and replaces all instances of |=| within a |ps2pdf| option into |#| (under Windows only).
 No quotes are added.
@@ -888,9 +916,9 @@ Windows uses can therefore continue to use |=| to set |ps2pdf| options and allow
 \subsection{Compression of bitmap data}
 In the conversion using |ps2pdf|, bitmap images are stored using either lossy or lossless compression. The default behaviour for \pkg{pstool} is to force lossless compression, because we believe that to be the most commonly desired use case (you don't want scientific graphics rendered with possible compression artifacts). This behaviour can be adjusted using one of these options:\footnote{Technical details are given in section~\ref{sec:bitmapdetails}.}
 \begin{description}
-\item[\pkgopt{bitmap=auto}] do whatever |ps2pdf| does by default, which seems to be to use lossy compression most, if not all, of the time;
-\item[\pkgopt{bitmap=lossy}] bitmap images are compressed like \textsc{jpg}; this is only really suitable for photographs;
-\item[\pkgopt{bitmap=lossless}] bitmap images are compressed like \textsc{png}; this is suitable for screenshots and generated data such as a surface plot within Matlab (\emph{default}).
+\item[\pkgopt{bitmap=auto}] :~ Do whatever |ps2pdf| does by default, which seems to be to use lossy compression most, if not all, of the time;
+\item[\pkgopt{bitmap=lossy}]:~ Bitmap images are compressed like \textsc{jpg}; this is only really suitable for photographs;
+\item[\pkgopt{bitmap=lossless}] (\emph{default}) : Bitmap images are compressed like \textsc{png}; this is suitable for screenshots and generated data such as a surface plot within Matlab.
 \end{description}
 These are just special cases of the \pkgopt{ps2pdf-options=...} option, but using \pkgopt{bitmap=...} is much more convenient since the |ps2pdf| options to effect this behaviour are quite verbose.
 Note that the |auto| and |lossy| outputs differ in quality; |lossy| is lower quality than |auto| even when the latter uses a lossy compression scheme. Adjusting the quality for these options is only possible with relatively complex Ghostscript options.
