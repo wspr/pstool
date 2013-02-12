@@ -79,8 +79,8 @@ v1.3, July 2009:
 \newread\pstool@mainfile@ior
 \newread\pstool@auxfile@ior
 
-\providecommand\OnlyIfFileExists[2]{\IfFileExists{#1}{#2}{}}
-\providecommand\NotIfFileExists[2]{\IfFileExists{#1}{}{#2}}
+% Macro used to store the name of the graphic's macro file:
+\let\pstool@tex\@empty
 
 % \subsection{Package options}
 
@@ -209,11 +209,11 @@ v1.3, July 2009:
 % #1: path
 % #2: filename
 \newcommand\pstool@rm[2]{%
-  \OnlyIfFileExists{#1#2}{%
+  \IfFileExists{#1#2}{%
     \immediate\write18{%
       cd "#1"\pstool@cmdsep\pstool@rm@cmd "#2"
     }%
-  }%
+  }{}%
 }
 
 % Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
@@ -334,7 +334,6 @@ v1.3, July 2009:
 % -- the EPS is newer than the PDF, or
 % -- the TeX file is new than the PDF.
 \ExplSyntaxOn
-
 \newcommand\pstool@maybeprocess[3][]
  {
   \pstool_if_should_process:nTF {#2}
@@ -346,7 +345,8 @@ v1.3, July 2009:
  {
   \pstool@getpaths{#1}
 
-  \file_if_exist:nF { #1.pdf } { \use_i_delimit_by_q_stop:nw \prg_return_true: }
+  \file_if_exist:nF { #1.pdf }
+    { \use_i_delimit_by_q_stop:nw \prg_return_true: }
 
   \filemodCmp {\pstool@path\pstool@filestub.eps}
               {\pstool@path\pstool@filestub.pdf}
@@ -369,7 +369,6 @@ v1.3, July 2009:
   \use_i_delimit_by_q_stop:nw \prg_return_false:
   \q_stop
  }
-\errorcontextlines=999
 \ExplSyntaxOff
 
 % \section{User commands}
@@ -511,11 +510,11 @@ v1.3, July 2009:
   \immediate\openout\pstool@out #2\pstool@suffix.tex\relax
 % And copy the main file's bbl file too:
 % (necessary for biblatex)
-\IfFileExists{\jobname.bbl}{%
-  \IfFileExists{\pstool@path\pstool@jobname.bbl}{%
-    \immediate\write18{\pstool@rm@cmd \pstool@path\pstool@jobname.bbl}%
+  \IfFileExists{\jobname.bbl}{%
+    \IfFileExists{\pstool@path\pstool@jobname.bbl}{%
+      \immediate\write18{\pstool@rm@cmd \pstool@path\pstool@jobname.bbl}%
+    }{}%
   }{}%
-}{}%
 \immediate\write18{\pstool@cp@cmd \jobname.bbl \pstool@path\pstool@jobname.bbl}%
 %
 % Scan the main document line by line; print preamble into auxiliary file until the document begins or \cs{EndPreamble} is found:
@@ -626,9 +625,11 @@ v1.3, July 2009:
   % Find the .eps file to use.
   \IfFileExists{#2-psfrag.eps}{%
     \edef\pstool@eps{#2-psfrag}%
-    \OnlyIfFileExists{#2.eps}{%
-      \PackageWarning{pstool}{Graphic "#2.eps" exists but "#2-psfrag.eps" is being used}%
-    }%
+    \IfFileExists{#2.eps}{%
+      \PackageWarning{pstool}{%
+        Graphic "#2.eps" exists but "#2-psfrag.eps" is being used%
+      }%
+    }{}%
   }{%
     \IfFileExists{#2.eps}{%
       \edef\pstool@eps{#2}%
@@ -643,13 +644,13 @@ v1.3, July 2009:
   % Find the .tex file to use.
   \IfFileExists{#2-psfrag.tex}{%
     \edef\pstool@tex{#2-psfrag.tex}%
-    \OnlyIfFileExists{#2.tex}{%
+    \IfFileExists{#2.tex}{%
       \PackageWarning{pstool}{%
         File "#2.tex" exists that may contain macros
         for "\pstool@eps.eps"^^J%
         But file "#2-psfrag.tex" is being used instead.%
       }%
-    }%
+    }{}%
   }{%
     \IfFileExists{#2.tex}{%
       \edef\pstool@tex{#2.tex}%
@@ -678,15 +679,7 @@ v1.3, July 2009:
     }\@tempa
   \fi
 }
-
-% Macro used to store the name of the graphic's macro file
-\let\pstool@tex\@empty
-
-% Break out the separate function in order to expand \cs{pstool@tex} before writing it.
-\newcommand\pstool@@@psfragfig[3]{%
-
-}
-% That's it.
+% \centerline{\itshape ---The End---}
 \end{filecontents*}
 %%%%%%%%%1%%%%%%%%%2%%%%%%%%%3%%%%%%%%%4%%%%%%%%%5
 
@@ -753,6 +746,8 @@ v1.3, July 2009:
 \linespread{1.1}
 \frenchspacing
 
+\def\partname{Part}
+
 \GetFileInfo{pstool.sty}
 \begin{document}
 {\addtocontents{toc}{\protect\begin{varwidth}[t]{\tocwidthA\linewidth}}}
@@ -769,10 +764,8 @@ v1.3, July 2009:
 This package defines the \cmd\psfragfig\ user command for including \EPS\ files that use \pkg{psfrag} features in a pdf\/\LaTeX\ document. The command \cmd\pstool\ can be used to define other commands with similar behaviour.
 \end{abstract}
 
-\vfil
 \tableofcontents
 
-\newpage
 \part{User documentation}
 
 \section{Introduction}
@@ -993,6 +986,8 @@ This package is freely modifiable and distributable under the terms and conditio
 
 \section{Code}
 
+Note that the following code is typeset in a non-verbatim manner; indentation is controlled automatically by some hastily written macros (and will sometimes not indent as might be done manually). Furthermore, spaces before comment signs are lost---when in doubt, consult the source directly!
+
 \parindent=0pt
 
 \ExplSyntaxOn
@@ -1047,6 +1042,8 @@ This package is freely modifiable and distributable under the terms and conditio
 
 \cs_new:Nn \pstool_doc_line_code:
  {
+  \makebox[0pt][r]{\scriptsize\color{blue}\int_use:N \g_pstool_docline_int\quad}
+  
   \int_zero:N \l_pstool_line_indent_int
   \tl_map_inline:Nn \l_pstool_tl
    {
@@ -1063,7 +1060,7 @@ This package is freely modifiable and distributable under the terms and conditio
   \int_compare:nT { \l_pstool_line_indent_int > 0 }
    { \int_set:Nn \g_pstool_indent_int { \g_pstool_indent_int + \l_pstool_line_indent_int } }
   \int_compare:nT { \g_pstool_indent_int < 0 }
-   { \int_zero:N \g_pstool_indent_int }  
+   { \int_zero:N \g_pstool_indent_int }
   
   \texttt{\l_pstool_tl}
   
@@ -1083,9 +1080,11 @@ This package is freely modifiable and distributable under the terms and conditio
 
 \errorcontextlines=999
 
+\int_new:N \g_pstool_docline_int
 \ior_open:Nn \pstool_doc_ior {pstool.sty}
 \ior_str_map_inline:Nn \pstool_doc_ior
  {
+  \int_gincr:N \g_pstool_docline_int
   \exp_args:NNo \seq_set_split:Nnn \l_pstool_line_seq {\c_pstool_percent_str} {#1}
   %\seq_show:N \l_pstool_line_seq
   \seq_pop_left:NNT \l_pstool_line_seq \l_pstool_tl
