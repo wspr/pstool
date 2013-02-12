@@ -2,6 +2,9 @@
 
 PKG='pstool'
 
+pdflatex -draftmode $PKG.tex
+pdflatex $PKG.tex
+
 mkdir -p -v   CTAN-TMPDIR/source/latex/$PKG/
 mkdir -p -v   CTAN-TMPDIR/tex/latex/$PKG/
 mkdir -p -v   CTAN-TMPDIR/doc/latex/$PKG/example/subdir
