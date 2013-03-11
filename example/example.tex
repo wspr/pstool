@@ -1,11 +1,11 @@
 
 \documentclass[12pt]{memoir}
 \usepackage{color}
-\usepackage[cleanup={}]{pstool}
+\usepackage[cleanup={},process=all]{pstool}
 \input macros.tex
 
 \newif\ifNAT
-\NATtrue
+\NATfalse
 \ifNAT
   \usepackage{natbib}
 \else

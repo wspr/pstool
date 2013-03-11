@@ -1,6 +1,6 @@
 __________________
 The pstool package
-v1.5
+v1.5a
 
 A package like "pst-pdf" for processing PostScript graphics
 with psfrag labels within pdfLaTeX documents. The difference
@@ -22,6 +22,10 @@ Copyright 2008-2013
 
 ____________________
 Brief change history
+
+v1.5a, March 2013:
+  - Fix bug introduced in last version in which plain LaTeX compilation
+    (producing DVI) produced erroneous output above each figure.
 
 v1.5, February 2013:
   - Fix =/# mixup in Windows ps2pdf options.

@@ -2,7 +2,7 @@
 \begin{filecontents*}{README.txt}
 __________________
 The pstool package
-v1.5
+v1.5a
 
 A package like "pst-pdf" for processing PostScript graphics
 with psfrag labels within pdfLaTeX documents. The difference
@@ -24,6 +24,10 @@ Copyright 2008-2013
 
 ____________________
 Brief change history
+
+v1.5a, March 2013:
+  - Fix bug introduced in last version in which plain LaTeX compilation
+    (producing DVI) produced erroneous output above each figure.
 
 v1.5, February 2013:
   - Fix =/# mixup in Windows ps2pdf options.
@@ -51,7 +55,7 @@ v1.3, July 2009:
 \begin{filecontents*}{pstool.sty}
 % TODO: convert this package into expl3 syntax (will save many lines of code).
 
-\ProvidesPackage{pstool}[2013/02/11 v5
+\ProvidesPackage{pstool}[2013/03/11 v1.5a
   Wrapper for processing PostScript/psfrag figures]
 
 % External packages:
@@ -503,20 +507,18 @@ v1.3, July 2009:
 
 % The file that is written for processing is set up to read the preamble of the original document and set the graphic on an empty page (cropping to size is done either here with \pkg{preview} or later with \pkg{pdfcrop}).
 \def\pstool@write@processfile#1#2#3{%
+  \immediate\openout\pstool@out #2\pstool@suffix.tex\relax
 % Put down a label so we can pass through the current page number:
   \edef\pstool@label{pstool-\pstool@path\pstool@filestub}%
   \protected@write\@auxout{}%
     {\string\newlabel{\pstool@label}{{\@currentlabel}{\the\c@page}}}%
-  \immediate\openout\pstool@out #2\pstool@suffix.tex\relax
-% And copy the main file's bbl file too:
-% (necessary for biblatex)
+% And copy the main file's bbl file too: (necessary only for biblatex)
   \IfFileExists{\jobname.bbl}{%
     \IfFileExists{\pstool@path\pstool@jobname.bbl}{%
       \immediate\write18{\pstool@rm@cmd \pstool@path\pstool@jobname.bbl}%
     }{}%
+    \immediate\write18{\pstool@cp@cmd \jobname.bbl \pstool@path\pstool@jobname.bbl}%
   }{}%
-\immediate\write18{\pstool@cp@cmd \jobname.bbl \pstool@path\pstool@jobname.bbl}%
-%
 % Scan the main document line by line; print preamble into auxiliary file until the document begins or \cs{EndPreamble} is found:
   \endlinechar=-1
   \def\@tempa{\pdfoutput=0\relax}% 
@@ -541,7 +543,6 @@ v1.3, July 2009:
     \fi
   }
   \closein\pstool@mainfile@ior
-%
 % Now the preamble of the process file:
   \immediate\write\pstool@out{%
     \if@pstool@pdfcrop@\else
@@ -551,7 +552,8 @@ v1.3, July 2009:
       \pagestyle{empty}^^J^^J% remove the page number
     }%
     \noexpand\makeatletter^^J%
-% Sort out the page numbering:
+% Sort out the page numbering here.
+% Force the pagestyle locally to output an integer so it can be written to the external file inside a \cs{setcounter} command.
     \expandafter\ifx\csname r@\pstool@label\endcsname\relax\else
       \def\noexpand\thepage{\unexpanded\expandafter{\thepage}}^^J%
       \noexpand\setcounter{page}{%
@@ -559,7 +561,6 @@ v1.3, July 2009:
           \@secondoftwo\csname r@\pstool@label\endcsname
       }^^J%
     \fi
-%
 % And the document body to place the graphic on a page of its own:
     \noexpand\@input{\jobname.oldaux}^^J^^J%
     \noexpand\begin{document}^^J%
@@ -667,11 +668,9 @@ v1.3, July 2009:
     \edef\@tempa{%
       \unexpanded{\pstool#3[#1]}{\pstool@eps}{%
         \ifx\pstool@macrofile\@empty\else
-          \@percentchar Input main macro file:^^J
           \unexpanded{\csname @input\endcsname}{\pstool@macrofile}%
         \fi
         \ifx\pstool@tex\@empty\else
-          \@percentchar Input macro file for this graphic:^^J
           \unexpanded{\csname @input\endcsname}{\pstool@tex}%
         \fi
         \unexpanded{#4}%
