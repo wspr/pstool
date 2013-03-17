@@ -2,7 +2,6 @@
 \begin{filecontents*}{README.txt}
 __________________
 The pstool package
-v1.5a
 
 A package like "pst-pdf" for processing PostScript graphics
 with psfrag labels within pdfLaTeX documents. The difference
@@ -21,6 +20,7 @@ Please see the PDF documentation for further information.
 
 Will Robertson & Zebb Prime
 Copyright 2008-2013
+Distributed under the LaTeX Project Public License, "maintained" by Will Robertson.
 
 ____________________
 Brief change history
@@ -554,6 +554,7 @@ v1.3, July 2009:
     \unexpanded{%
       \pagestyle{empty}^^J^^J% remove the page number
     }%
+    \noexpand\makeatletter^^J%
 % Sort out the page numbering here.
 % Force the pagestyle locally to output an integer so it can be written to the external file inside a \cs{setcounter} command.
     \expandafter\ifx\csname r@\pstool@label\endcsname\relax\else
@@ -564,7 +565,8 @@ v1.3, July 2009:
       }^^J%
     \fi
 % And the document body to place the graphic on a page of its own:
-    \noexpand\csname @input\noexpand\endcsname{\jobname.oldaux}^^J^^J%
+    \noexpand\@input{\jobname.oldaux}^^J%
+    \noexpand\makeatother^^J^^J%
     \noexpand\begin{document}^^J%
     \noexpand\makeatletter^^J%
     \unexpanded{\immediate\write\@mainaux}{\pstool@auxmarker*}^^J%

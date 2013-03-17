@@ -1,6 +1,5 @@
 __________________
 The pstool package
-v1.5a
 
 A package like "pst-pdf" for processing PostScript graphics
 with psfrag labels within pdfLaTeX documents. The difference
@@ -19,9 +18,13 @@ Please see the PDF documentation for further information.
 
 Will Robertson & Zebb Prime
 Copyright 2008-2013
+Distributed under the LaTeX Project Public License, "maintained" by Will Robertson.
 
 ____________________
 Brief change history
+
+v1.5b
+  - Fix conflict with beamer, which resets the catcode of @ with \begin{document}
 
 v1.5a, March 2013:
   - Fix bug introduced in last version in which plain LaTeX compilation
