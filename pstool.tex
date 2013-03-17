@@ -25,6 +25,9 @@ Copyright 2008-2013
 ____________________
 Brief change history
 
+v1.5b
+  - Fix conflict with beamer, which resets the catcode of @ with \begin{document}
+
 v1.5a, March 2013:
   - Fix bug introduced in last version in which plain LaTeX compilation
     (producing DVI) produced erroneous output above each figure.
@@ -55,7 +58,7 @@ v1.3, July 2009:
 \begin{filecontents*}{pstool.sty}
 % TODO: convert this package into expl3 syntax (will save many lines of code).
 
-\ProvidesPackage{pstool}[2013/03/11 v1.5a
+\ProvidesPackage{pstool}[2013/03/11 v1.5b
   Wrapper for processing PostScript/psfrag figures]
 
 % External packages:
@@ -551,7 +554,6 @@ v1.3, July 2009:
     \unexpanded{%
       \pagestyle{empty}^^J^^J% remove the page number
     }%
-    \noexpand\makeatletter^^J%
 % Sort out the page numbering here.
 % Force the pagestyle locally to output an integer so it can be written to the external file inside a \cs{setcounter} command.
     \expandafter\ifx\csname r@\pstool@label\endcsname\relax\else
@@ -562,10 +564,11 @@ v1.3, July 2009:
       }^^J%
     \fi
 % And the document body to place the graphic on a page of its own:
-    \noexpand\@input{\jobname.oldaux}^^J^^J%
+    \noexpand\csname @input\noexpand\endcsname{\jobname.oldaux}^^J^^J%
     \noexpand\begin{document}^^J%
+    \noexpand\makeatletter^^J%
     \unexpanded{\immediate\write\@mainaux}{\pstool@auxmarker*}^^J%
-    \noexpand\makeatother^^J%
+    \noexpand\makeatother^^J^^J%
     \unexpanded{%
       \centering\null\vfill^^J%
     }%
