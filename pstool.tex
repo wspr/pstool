@@ -448,10 +448,10 @@ v1.3, July 2009:
   \fi
 % Finish up: (implies success!)
   \pstool@endprocess{%
-    \pstool@cleanup
     \pstool@includegraphics{\pstool@path\pstool@filestub}%
 % Emulate \cs{include} (sort of) and have the main document load the auxiliary aux file, in a manner of speaking:
     \pstool@write@aux
+    \pstool@cleanup
   }%
   \pstool@echo@verbose{^^J=== pstool: end processing ===^^J}%
   \endgroup
@@ -501,9 +501,11 @@ v1.3, July 2009:
 
 % We need to cache the aux file, so here goes.
 % This is because the aux file is cleared for writing after \cs{begin{document}}.
-\IfFileExists{\jobname.oldaux}{\immediate\write18{\pstool@rm@cmd \jobname.oldaux}}{}
-\immediate\write18{\pstool@cp@cmd \jobname.aux \jobname.oldaux}
-\AtEndDocument{\immediate\write18{\pstool@rm@cmd \jobname.oldaux}}
+\ifpdf
+  \IfFileExists{\jobname.oldaux}{\immediate\write18{\pstool@rm@cmd \jobname.oldaux}}{}
+  \immediate\write18{\pstool@cp@cmd \jobname.aux \jobname.oldaux}
+  \AtEndDocument{\immediate\write18{\pstool@rm@cmd \jobname.oldaux}}
+\fi
 
 \edef\pstool@auxmarker#1{\string\@percentchar\space <#1PSTOOLLABELS>}
 \edef\pstool@auxmarker@text#1{\@percentchar <#1PSTOOLLABELS>}
