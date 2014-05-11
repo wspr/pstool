@@ -1,0 +1,27 @@
+
+\immediate\write18{cd ..; latex pstool.ins; cp pstool.sty testing/}
+\errorcontextlines=999
+
+
+\documentclass{beamer}
+
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage[process=all,crop=pdfcrop,cleanup={.bbl, .aux ,.foo}]{pstool}
+
+\ifpdf\else
+  \setbeamertemplate{navigation symbols}{}
+\fi
+
+\def\a{A}
+\def\b{b}
+\def\c{C}
+
+\begin{document}
+\begin{frame}
+    \frametitle{Circle}
+    \begin{figure}
+        \psfragfig{trial}{\def\b{B}}
+    \end{figure}
+\end{frame}
+\end{document}
