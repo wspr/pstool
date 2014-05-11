@@ -19,14 +19,17 @@ except pstool.ins (and the PDF file, obviously).
 Please see the PDF documentation for further information.
 
 Will Robertson & Zebb Prime
-Copyright 2008-2013
+Copyright 2008-2014
 Distributed under the LaTeX Project Public License, "maintained" by Will Robertson.
 
 ____________________
 Brief change history
 
+v1.5c
+  - Documentation update; some minor cosmetic code changes.
+
 v1.5b
-  - Fix conflict with beamer, which resets the catcode of @ with \begin{document}
+  - Fix conflict with beamer, which resets the catcode of @ with \begin{document}.
 
 v1.5a, March 2013:
   - Fix bug introduced in last version in which plain LaTeX compilation
@@ -58,7 +61,7 @@ v1.3, July 2009:
 \begin{filecontents*}{pstool.sty}
 % TODO: convert this package into expl3 syntax (will save many lines of code).
 
-\ProvidesPackage{pstool}[2013/03/11 v1.5b
+\ProvidesPackage{pstool}[2014/05/11 v1.5c
   Wrapper for processing PostScript/psfrag figures]
 
 % External packages:
@@ -804,7 +807,8 @@ The disadvantage with this method is that for every document compilation, \emph{
 
 At present this package is designed solely as a replacement for \pkg{pst-pdf} in the r\^ole of supporting the \pkg{psfrag} package (which it loads) in pdf\/\LaTeX. 
 
-More flexible usage to provide a complete replacement for \pkg{pst-pdf} (e.g., supporting the \cs{begin\{postscript\}} environment) is planned for a later release. If you simply need to automatically convert plain \EPS\ files to \PDF, I recommend using the \pkg{epstopdf} package with the \pkgopt{update,prepend} package options (\pkg{epstopdf} and \pkg{pstool} should be completely compatible).
+More flexible usage to provide a complete replacement for \pkg{pst-pdf} (e.g., supporting the \cs{begin\{postscript\}} environment) is planned for a later release.
+If you simply need to automatically convert plain \EPS\ files to \PDF, I recommend using the \pkg{epstopdf} package with the \pkgopt{update,prepend} package options (\pkg{epstopdf} and \pkg{pstool} are compatible, but \textbf{only} if \pkg{epstopdf} is loaded first).
 
 \section{Getting started}
 
