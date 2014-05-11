@@ -1,0 +1,18 @@
+
+\errorcontextlines=999
+
+\documentclass[a5paper,12pt]{article}
+
+\usepackage{color}
+\usepackage[mode=errorstop,process=all]{pstool}
+\input macros.tex
+
+\begin{document}
+
+\psfragfig[angle=45]{subdir/trial2}{%
+  \color{red}
+  \tiny
+  \psfrag{[Mp]}{$Z_\b$}%
+}
+
+\end{document}
