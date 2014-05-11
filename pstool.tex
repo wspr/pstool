@@ -829,7 +829,7 @@ It is useful to define higher-level commands based on \cmd\pstool\ for including
 This catch-all macro is designed to support a wide range of graphics naming schemes. It inserts an \EPS\ file named either \meta{filename}|-psfrag.eps| or \meta{filename}|.eps| (in that order of preference), and uses \pkg{psfrag} definitions contained within either \meta{filename}|-psfrag.tex| or \meta{filename}|.tex|. 
 The \cs{psfragfig} command can be used to insert figures produced by the \textsc{Mathematica} package \pkg{MathPSfrag} or the \textsc{Matlab} package \pkg{matlabfrag}. \cmd\psfragfig\ also accepts an optional braced argument:
 \begin{description}
-\item[{\cmd\psfragfig \meta{suffix} \oarg{opts} \marg{filename} \marg{input definitions}}] 
+\item[{\cmd\psfragfig~\meta{suffix} \oarg{opts} \marg{filename} \marg{input definitions}}] 
 \end{description}
 The command behaves as above, but also inserts the arbitrary code \meta{input definitions} into the processing stage; this additional code will usually be used to define new or override existing \pkg{psfrag} commands.
 
@@ -848,7 +848,7 @@ If they change, these macro files can trigger a pre-compilation of the graphics.
 While usually the macro files will be defined per-graphic (such as \texttt{foo.eps} having a \texttt{foo-psfrag.tex} file), \pkg{pstool} will also load a `master' macro file for each graphic if it exists.
 
 \begin{description}
-  \item[\pkgopt{macro-file=...}]
+  \item[\pkgopt{macro-file = ...}]
 \end{description}
 The default is \pkgopt{macro-file=\meta{jobname}\texttt{-pstool.tex}}; if this file does not exist then no macro file is loaded.
 That is, if your document is called \texttt{thesis.tex}, the master macro file will be loaded in each graphic as \texttt{thesis-pstool.tex}, if it exists.
@@ -889,26 +889,26 @@ Each graphic echoes the output of its auxiliary process to the console window; u
 \begin{description}
 \item[\pkgopt{mode=batch}] hide almost all of the \LaTeX\ output (\emph{default});
 \item[\pkgopt{mode=nonstop}] echo all \LaTeX\ output but continues right past any errors; and 
-\item[\pkgopt{mode=errorstop}] prompt for user input when errors in the source are encountered.
+\item[\pkgopt{mode=errorstop}] prompt for user input when errors are encountered.
 \end{description}
 These three package options correspond to the \LaTeX\ command line options \texttt{-interaction=batchmode}, \texttt{=nonstopmode}, and \texttt{=errorstopmode}, respectively. When \pkgopt{mode=batch} is activated, then \pkg{dvips} is also run in `quiet mode'.
 
 \subsection{Auxiliary processing command line options}
 The command line options passed to each program of the auxiliary processing can be changed with the following package options:
 \begin{description}
-\item[\pkgopt{latex-options=...}]
-\item[\pkgopt{dvips-options=...}]
-\item[\pkgopt{ps2pdf-options=...}] and,
-\item[\pkgopt{pdfcrop-options=...}] (if applicable).
+\item[\pkgopt{latex-options~~~= ...}]
+\item[\pkgopt{dvips-options~~~= ...}]
+\item[\pkgopt{ps2pdf-options~~= ...}] and,
+\item[\pkgopt{pdfcrop-options~= ...}] (if applicable).
 \end{description}
-For the most part these will be unnecessary, although passing the correct options to |ps2pdf| can sometimes be a little obscure.\footnote{The manual is here: \url{http://pages.cs.wisc.edu/~ghost/doc/cvs/Ps2pdf.htm}} For example, I use the following for generating figures in my thesis:%
+For the most part these will be unnecessary, although passing the correct options to |ps2pdf| can sometimes be a little obscure.\footnote{The manual is here: \url{http://pages.cs.wisc.edu/~ghost/doc/cvs/Ps2pdf.htm}} For example, I used the following for generating figures in my thesis:%
 \par{\centering|ps2pdf-options={-dPDFSETTINGS=/prepress}|\par}
 This forces the `base fourteen' fonts to be embedded within the individual figure files, without which some printers and \textsc{pdf} viewers have trouble with the textual labels. In fact, from v1.3 of \pkg{pstool}, this option is now the default.
 Note that subsequent calls to \pkgopt{ps2pdf-options=...} will override the \pkg{pstool} default; use |ps2pdf-options={}| to erase |ps2pdf|'s defaults if necessary.
 
 \textbf{New in 1.5}: recently, the behaviour of |ps2pdf| has changed under Windows.
 In the past, options to |ps2pdf| needed to be quoted and use |=| to assign its options.
-Something about this has now changed, and it appears the best way to set |ps2pdf| options to use the |#| character instead; therefore, \pkg{pstool} attempts to be clever and replaces all instances of |=| within a |ps2pdf| option into |#| (under Windows only).
+Something about this has now changed, and it appears the best way to set |ps2pdf| options to use the |#| character instead. Therefore, \pkg{pstool} attempts to be clever and replaces all instances of |=| within a |ps2pdf| option into |#| (under Windows only).
 No quotes are added.
 Windows uses can therefore continue to use |=| to set |ps2pdf| options and allow \pkg{pstool} to make the substitution; their documents will still compile correctly on Mac OS X or Linux platforms.
 
@@ -959,7 +959,7 @@ This is also handy to bypass anything in the preamble that will never be require
 \textbf{New in v1.5}: \pkg{pstool} now supports cross-referencing within graphics.
 That is, you can use |\ref| and |\cite|, etc., within \pkg{psfrag} commands.
 In fact, references to page numbers within an external figure should now resolve correctly; e.g., you can use |\thepage| within a \pkg{psfrag} command.
-(I haven't really tested, but this should allow any package that writes information to the |.aux| file and refers to the page number to work correctly.)
+(I haven't really tested, but this should allow any package that writes information to the |.aux| file to work correctly.)
 
 The implementation to achieve this is somewhat convoluted and difficult to extend, but the user interface should work just as you would expect, mostly.
 The main gotcha to keep in mind is that when cross-referencing is used, the graphics will need multiple compilations to resolve all the cross-references properly.
@@ -968,7 +968,7 @@ Alternatively, don't worry about the resolving of the cross-references until the
 
 \subsection{A note on file paths}
 
-\pkg{pstool} tries to ensure that you can put image files in subdirectories of the main document and the auxiliary processing will still function correctly. In order to ensure this,  the external |pdflatex| compilation uses the |-output-directory| feature of pdf\/\TeX. This command line option is definitely supported on all platforms from TeX~Live~2008 and MiKTeX~2.7 onwards, but earlier distributions may not be supported.
+The \pkg{pstool} package tries to ensure that you can put image files in subdirectories of the main document and the auxiliary processing will still function correctly. In order to ensure this,  the external |pdflatex| compilation uses the |-output-directory| feature of pdf\/\TeX. This command line option is definitely supported on all platforms from TeX~Live~2008 and MiKTeX~2.7 onwards, but earlier distributions may not be supported.
 
 One problem that \pkg{pstool} does not solve on its own is the inclusion of images that do not exist in subdirectories of the main document. For example, |\pstool{../Figures/myfig}| can not process by default because pdf\/\TeX\ usually does not have permission to write into folders that are higher in the heirarchy than the main document. This can be worked around presently in two different ways: (although maybe only for Mac~OS~X and Linux)
 \begin{enumerate}
