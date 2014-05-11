@@ -924,6 +924,27 @@ Note that the |auto| and |lossy| outputs differ in quality; |lossy| is lower qua
 
 \section{Miscellaneous details}
 
+\subsection{Conditional preamble or setup commands}
+
+It can be necessary to use a slightly different preamble for the main document compared to the auxiliary file used to process each graphic individually.
+To have preamble material be directed at only one or the other, use the \cs{ifpdf} command (automatically loaded from the \pkg{ifpdf} package) as follows:
+\begin{list}{}\item{}
+|  \ifpdf|\\
+|    %| \emph{main preamble only}\\
+|  \else|\\
+|    %| \emph{graphics preamble only}\\
+|  \fi|
+\end{list}
+For example, when using \pkg{beamer} and showing navigation symbols on each slide, you want to suppress these in the \pkg{pstool}-generated graphics (else they'll show up twice!).
+In this case, the preamble snippet would look something like:
+\begin{list}{}\item{}
+|  \ifpdf\else|\\
+|    \setbeamertemplate{navigation symbols}{}|\\
+|  \fi|
+\end{list}
+It would be possible to provide specific \pkg{pstool} commands or environments to do this; let me know if the \cs{ifpdf} approach doesn't work for you.
+For larger amount of preamble material that should be omitted for each graphic, the \cmd{\EndPreamble} command (see next) might also help.
+
 \subsection{The \cmd\EndPreamble\ command}
 
 The \pkg{pstool} package scans the beginning of the main document to insert its preamble into each graphic that is converted.
