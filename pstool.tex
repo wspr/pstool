@@ -245,7 +245,7 @@ v1.3, July 2009:
 \newcommand\pstool@cp[3]{%
   \IfFileExists{#1#2}{%
     \immediate\write18{%
-      cd "#1"\pstool@cmdsep\pstool@rm@cmd "#2" "#3"
+      cd "#1"\pstool@cmdsep\pstool@cp@cmd "#2" "#3"
     }%
   }{}%
 }
