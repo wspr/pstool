@@ -1,0 +1,18 @@
+
+\errorcontextlines=999
+
+\documentclass[a5paper,12pt]{article}
+\usepackage[mode=errorstop,process=all]{pstool}
+\input macros.tex
+
+\begin{document}
+
+External macros: \a, \b, \c
+
+\psfragfig[crop=pdfcrop]{trial}{%
+  \color{red}
+  \tiny
+  \psfrag{[Mp]}{$M_\a$!}%
+}
+
+\end{document}
