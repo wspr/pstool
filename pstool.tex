@@ -1013,7 +1013,7 @@ This package is freely modifiable and distributable under the terms and conditio
 
 \section{Code}
 
-Note that the following code is typeset in a non-verbatim manner; indentation is controlled automatically by some hastily written macros (and will sometimes not indent as might be done manually). Furthermore, spaces before comment signs are lost---when in doubt, consult the source directly!
+Note that the following code is typeset in a non-verbatim manner; indentation is controlled automatically by some hastily written macros (and will sometimes not indent as might be done manually). When in doubt, consult the source directly!
 
 \parindent=0pt
 
@@ -1109,6 +1109,9 @@ Note that the following code is typeset in a non-verbatim manner; indentation is
 
 \int_new:N \g_pstool_docline_int
 \ior_open:Nn \pstool_doc_ior {pstool.sty}
+
+\cs_set_eq:NN \___tl_trim_spaces:n \tl_trim_spaces:n
+\cs_set_eq:NN \tl_trim_spaces:n \use:n % avoid space trimming inside \seq_set_split:n following (MAJOR SIDE-EFFECTS OF COURSE)
 \ior_str_map_inline:Nn \pstool_doc_ior
  {
   \int_gincr:N \g_pstool_docline_int
@@ -1125,6 +1128,7 @@ Note that the following code is typeset in a non-verbatim manner; indentation is
      }
    }
  }
+\cs_set_eq:NN \tl_trim_spaces:n \___tl_trim_spaces:n
 
 \ExplSyntaxOff
 
