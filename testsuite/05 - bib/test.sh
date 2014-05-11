@@ -16,3 +16,5 @@ cp pstool.sty "$x"
 cd "$x"
 pwd
 pdflatex -shell-escape "testing.tex"
+bibtex "testing"
+pdflatex -shell-escape "testing.tex"

@@ -2,7 +2,6 @@
 \documentclass[12pt]{memoir}
 \usepackage{color}
 \usepackage[cleanup={},process=all]{pstool}
-\input macros.tex
 
 \newif\ifNAT
 \NATfalse
@@ -13,9 +12,11 @@
   \bibliography{xampl}
 \fi
 
+\def\a{A}
+\def\b{B}
+
 \EndPreamble
 \begin{document}
-
 
 \begin{center}
 \fbox{\psfragfig{trial}{%

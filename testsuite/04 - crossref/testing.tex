@@ -1,5 +1,5 @@
 
-\documentclass[12pt]{memoir}
+\documentclass{article}
 \usepackage{color}
 \usepackage[cleanup={},process=all]{pstool}
 \input macros.tex
@@ -7,18 +7,15 @@
 \usepackage{expl3}
 \begin{document}
 
-\title{\textsf{pstool} example document}
-\maketitle
-
+Subscript to $Z$ has the current page:
 \begin{center}
 \fbox{\psfragfig[angle=45]{subdir/trial2}{%
   \psfrag{[Mp]}{$Z_{\thepage}$}%
 }}
 \end{center}
 
-
-\frontmatter
-hello this is a filler page
+\clearpage
+filler page
 \begin{equation}
 a=b+c\label{eq1}
 \end{equation}
