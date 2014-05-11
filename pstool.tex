@@ -223,6 +223,18 @@ v1.3, July 2009:
   }{}%
 }
 
+% Copy a file if it exists:
+% #1: path
+% #2: filename
+% #3: new filename
+\newcommand\pstool@cp[3]{%
+  \IfFileExists{#1#2}{%
+    \immediate\write18{%
+      cd "#1"\pstool@cmdsep\pstool@rm@cmd "#2" "#3"
+    }%
+  }{}%
+}
+
 % Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
 % #1: `name' of process
 % #2: relative path where to execute the command
@@ -502,9 +514,9 @@ v1.3, July 2009:
 % We need to cache the aux file, so here goes.
 % This is because the aux file is cleared for writing after \cs{begin{document}}.
 \ifpdf
-  \IfFileExists{\jobname.oldaux}{\immediate\write18{\pstool@rm@cmd \jobname.oldaux}}{}
-  \immediate\write18{\pstool@cp@cmd \jobname.aux \jobname.oldaux}
-  \AtEndDocument{\immediate\write18{\pstool@rm@cmd \jobname.oldaux}}
+  \pstool@rm{}{\jobname.oldaux}
+  \pstool@cp{}{\jobname.aux}{\jobname.oldaux}
+  \AtEndDocument{\pstool@rm{}{\jobname.oldaux}}
 \fi
 
 \edef\pstool@auxmarker#1{\string\@percentchar\space <#1PSTOOLLABELS>}
@@ -517,13 +529,9 @@ v1.3, July 2009:
   \edef\pstool@label{pstool-\pstool@path\pstool@filestub}%
   \protected@write\@auxout{}%
     {\string\newlabel{\pstool@label}{{\@currentlabel}{\the\c@page}}}%
-% And copy the main file's bbl file too: (necessary only for biblatex)
-  \IfFileExists{\jobname.bbl}{%
-    \IfFileExists{\pstool@path\pstool@jobname.bbl}{%
-      \immediate\write18{\pstool@rm@cmd \pstool@path\pstool@jobname.bbl}%
-    }{}%
-    \immediate\write18{\pstool@cp@cmd \jobname.bbl \pstool@path\pstool@jobname.bbl}%
-  }{}%
+% And copy the main file's bbl file too: (necessary only for biblatex but do it always)
+  \pstool@rm{\pstool@path}{\pstool@jobname.bbl}%
+  \pstool@cp{}{\jobname.bbl}{\pstool@path\pstool@jobname.bbl}%
 % Scan the main document line by line; print preamble into auxiliary file until the document begins or \cs{EndPreamble} is found:
   \endlinechar=-1
   \def\@tempa{\pdfoutput=0\relax}% 
