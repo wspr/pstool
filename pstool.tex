@@ -116,7 +116,19 @@ v1.3, July 2009:
 }
 \ExecuteOptionsX{mode=batch}
 
-\DeclareOptionX{cleanup}{\def\pstool@rm@files{#1}}
+\DeclareOptionX{cleanup}{%
+  \edef\pstool@rm@files{\zap@space #1 \@empty}%
+  \@for\@ii:=\pstool@rm@files\do{%
+    \edef\@tempa{\@ii}%
+    \def\@tempb{.aux}%
+    \ifx\@tempa\@tempb
+      \PackageWarning{pstool}{^^J\space\space%
+      You have requested that ".aux" files be deleted.^^J\space\space
+      Cross-referencing within pstool graphics therefore disabled.^^J%
+      This warning occurred}
+    \fi
+  }
+}
 \ExecuteOptionsX{cleanup={.tex,.dvi,.ps,.pdf,.log}}
 
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
