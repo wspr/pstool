@@ -227,9 +227,9 @@ v1.3, July 2009:
 \edef\pstool@rm@cmd{\ifwindows del \else rm -- \fi}
 \edef\pstool@cp@cmd{\ifwindows copy \else cp -- \fi}
 
-% Delete a file if it exists:
-% #1: path
-% #2: filename
+% Delete a file if it exists:\\
+% \#1: path\\
+% \#2: filename
 \newcommand\pstool@rm[2]{%
   \IfFileExists{#1#2}{%
     \immediate\write18{%
@@ -238,10 +238,10 @@ v1.3, July 2009:
   }{}%
 }
 
-% Copy a file if it exists:
-% #1: path
-% #2: filename
-% #3: new filename
+% Copy a file if it exists:\\
+% \#1: path\\
+% \#2: filename\\
+% \#3: new filename
 \newcommand\pstool@cp[3]{%
   \IfFileExists{#1#2}{%
     \immediate\write18{%
@@ -250,10 +250,10 @@ v1.3, July 2009:
   }{}%
 }
 
-% Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.
-% #1: `name' of process
-% #2: relative path where to execute the command
-% #3: the command itself
+% Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.\\
+% \#1: `name' of process
+% \#2: relative path where to execute the command
+% \#3: the command itself
 \newcommand\pstool@exe[3]{%
   \pstool@echo{^^J=== pstool: #1 ===}%
   \pstool@shellexecute{#2}{#3}%
@@ -311,7 +311,7 @@ v1.3, July 2009:
 \def\pstool@statusfile{pstool-statusfile.txt}
 
 % Read the exit status from the temporary file and delete it.
-% #1 is the path
+% \#1 is the path
 % Status is recorded in \cmd\pstool@status.
 \def\pstool@retrievestatus#1{%
   \CatchFileEdef{\pstool@status}{#1\pstool@statusfile}{}%
@@ -363,9 +363,9 @@ v1.3, July 2009:
   }
 \fi
 
-% Process the figure when:
-% -- the PDF file doesn't exist, or
-% -- the EPS is newer than the PDF, or
+% Process the figure when:\\
+% -- the PDF file doesn't exist, or\\
+% -- the EPS is newer than the PDF, or\\
 % -- the TeX file is new than the PDF.
 \ExplSyntaxOn
 \newcommand\pstool@maybeprocess[3][]
@@ -646,12 +646,11 @@ v1.3, July 2009:
   }%
 }
 
-% Search for both `filename' and `filename'-psfrag inputs.
-%
-% #1: possible graphicx options
-% #2: graphic name (possibly with path)
-% #3: \cs{pstool} suffix (i.e., \texttt{!} or \texttt{*} or `empty')
-% #4: possible \pkg{psfrag} (or other) macros
+% Search for both `filename' and `filename'-psfrag inputs.\\
+% \#1: possible graphicx options\\
+% \#2: graphic name (possibly with path)\\
+% \#3: \cs{pstool} suffix (i.e., \texttt{!} or \texttt{*} or `empty')\\
+% \#4: possible \pkg{psfrag} (or other) macros
 \newcommand\pstool@@psfragfig[4]{%
   % Find the .eps file to use.
   \IfFileExists{#2-psfrag.eps}{%
@@ -738,11 +737,7 @@ v1.3, July 2009:
 
 \usepackage{xcolor}
 \usepackage[colorlinks,linktocpage]{hyperref}
-%\usepackage{gmdoc}
-%\usepackage{gmverb}
-%\dekclubs
-%\stanzaskip=\bigskipamount 
-%\CodeSpacesGrey
+\usepackage{expl3,l3regex}
 
 \usepackage{enumitem}
 \setlist{noitemsep}
@@ -1041,122 +1036,173 @@ Note that the following code is typeset in a non-verbatim manner; indentation is
 
 \parindent=0pt
 
+
 \ExplSyntaxOn
 
-\ior_new:N \pstool_doc_ior
-\seq_new:N \l_pstool_line_seq
-\tl_new:N \l_pstool_tl
+\ior_new:N \pprint_doc_ior
+\seq_new:N \l_pprint_line_seq
+\tl_new:N \l_pprint_tl
 
-\tl_const:Nx \c_pstool_percent_str { \cs_to_str:N \% }
-\tl_const:Nx \c_pstool_lbrace_str { \cs_to_str:N \{ }
-\tl_const:Nx \c_pstool_rbrace_str { \cs_to_str:N \} }
+\int_new:N \g_pprint_indent_int
+\int_new:N \l_pprint_line_indent_int
+\dim_new:N \l_pprint_dim
 
-\cs_new:Nn \pstool_typeset_percent:
+\errorcontextlines=999
+
+\tl_set:Nx \g_pprint_comment_tl { \cs_to_str:N \% }
+\definecolor{commentstrcolor}{rgb}{0,0.7,0}
+\definecolor{numberscolor}{gray}{0.6}
+
+\def\linecommentstyle{%
+  \sffamily
+  \color{commentstrcolor}%
+}
+
+\cs_new:Nn \pprint_scan_setup:
  {
-  \group_begin:
-    \color{blue}
-    \scriptsize\bfseries
-    \c_pstool_percent_str
-  \group_end:
+  \char_set_catcode_space:N \ 
+%    \char_set_catcode_other:N \\
+%    \char_set_catcode_space:N \ % space
+%    \char_set_catcode_letter:N \#
+%    \char_set_catcode_letter:N \$
+%    \char_set_catcode_letter:N \^
+%    \char_set_catcode_letter:N \_
+%    \char_set_catcode_letter:N \& 
  }
 
-\cs_new:Nn \pstool_doc_rescan_line:
+%%%%
+
+\cs_new:Npn \PrettyPrint #1
  {
-  \exp_args:Nno \tl_rescan:nn
+\int_new:N \g_pprint_docline_int
+\ior_open:Nn \pprint_doc_ior {#1}
+
+\cs_generate_variant:Nn \tl_if_eq:nnTF {x}
+
+\cs_set_eq:NN \___tl_trim_spaces:n \tl_trim_spaces:n
+\ior_str_map_inline:Nn \pprint_doc_ior
+ {
+  \int_gincr:N \g_pprint_docline_int
+
+  % avoid space trimming inside \seq_set_split:n following:
+  % (MAJOR SIDE-EFFECTS OF COURSE)
+  \cs_set_eq:NN \tl_trim_spaces:n \use:n
+  \exp_args:NNo \seq_set_split:Nnn \l_pprint_line_seq \g_pprint_comment_tl {##1}
+  \cs_set_eq:NN \tl_trim_spaces:n \___tl_trim_spaces:n
+  
+  \seq_pop_left:NNT \l_pprint_line_seq \l_pprint_tl
    {
-    \char_set_catcode_space:N \ % space
-    \char_set_catcode_letter:N \#
+    \tl_if_empty:NTF \l_pprint_tl
+     {
+       \pprint_doc_line_comment:
+     }
+     {
+       \pprint_doc_line_code: 
+     }
    }
-   { \l_pstool_tl }
+ }
  }
 
-\cs_new:Nn \pstool_doc_line_comment:
+\cs_generate_variant:Nn \tl_if_eq:nnTF {o}
+\cs_new:Nn \pprint_doc_line_comment:
  {
-  \seq_pop_left:NNTF \l_pstool_line_seq \l_pstool_tl
+  \seq_pop_left:NNTF \l_pprint_line_seq \l_pprint_tl
    % Comment on a line of its own:
    {
-    \group_begin:
-    \int_compare:nT { \g_pstool_indent_int > 0 } { \color{blue}\small }
-    \pstool_doc_rescan_line:
-    \group_end:
-    \par
+    \seq_put_right:No \l_pprint_codelines_seq \l_pprint_tl
    }
    % A completely empty line:
    {
+    \pprint_flush_codelines:
     \vspace{\baselineskip}
    }
  }
 
-\int_new:N \g_pstool_indent_int
-\int_new:N \l_pstool_line_indent_int
-\dim_new:N \l_pstool_dim
-
-\cs_new:Nn \pstool_doc_line_code:
+\cs_new:Nn \pprint_rescan_comment:n
  {
-  \makebox[0pt][r]{\scriptsize\color{blue}\int_use:N \g_pstool_docline_int\quad}
-  
-  \int_zero:N \l_pstool_line_indent_int
-  \tl_map_inline:Nn \l_pstool_tl
+  \exp_args:Nno \tl_rescan:nn
    {
-    \str_if_eq_x:nnT {##1} {\c_pstool_lbrace_str} { \int_gincr:N \l_pstool_line_indent_int }
-    \str_if_eq_x:nnT {##1} {\c_pstool_rbrace_str} { \int_gdecr:N \l_pstool_line_indent_int }
+    \pprint_scan_setup:
    }
-  \exp_args:NNx \tl_if_in:NnT \l_pstool_tl { \token_to_str:N \if } { \int_gincr:N \l_pstool_line_indent_int }
-  \exp_args:NNx \tl_if_in:NnT \l_pstool_tl { \token_to_str:N \fi } { \int_gdecr:N \l_pstool_line_indent_int }
+   { #1 }
+ }
 
-  \int_compare:nT { \l_pstool_line_indent_int < 0 }
-   { \int_set:Nn \g_pstool_indent_int { \g_pstool_indent_int + \l_pstool_line_indent_int } }
-  \int_compare:nT { \g_pstool_indent_int > 0 }
-   { \prg_replicate:nn {\g_pstool_indent_int} {\quad} }
-  \int_compare:nT { \l_pstool_line_indent_int > 0 }
-   { \int_set:Nn \g_pstool_indent_int { \g_pstool_indent_int + \l_pstool_line_indent_int } }
-  \int_compare:nT { \g_pstool_indent_int < 0 }
-   { \int_zero:N \g_pstool_indent_int }
+\cs_new:Nn \pprint_typeset_startcomment:
+ {
+  \group_begin:
+    \bfseries
+    \g_pprint_comment_tl
+  \group_end:
+ }
+
+\cs_generate_variant:Nn \regex_extract_once:nnNTF {no}
+\cs_generate_variant:Nn \tl_if_in:nnT {xx}
+\seq_new:N \l_tmp_seq
+
+\seq_new:N \l_pprint_codelines_seq
+
+\int_new:N \g_pprint_brace_int
+\cs_new:Nn \pprint_lbrace:
+ {
+  \peek_meaning_remove:NTF \pprint_rbrace:
+   { \char`\{\char`\} }
+   {
+    \int_gincr:N \g_pprint_brace_int
+    \char`\{\pprint_brace_sub:
+   }
+ }
+\cs_new:Nn \pprint_rbrace:
+ {
+  \pprint_brace_sub:\char`\}
+  \int_gdecr:N \g_pprint_brace_int
+ }
+\cs_new:Nn \pprint_brace_sub:
+ {
+  {${}\sb{\sb{ \color{red}\mathbf{\int_use:N \g_pprint_brace_int} }}$}
+ }
+
+
+\cs_new:Nn \pprint_doc_line_code:
+ {
+  \pprint_flush_codelines:
+
+  \makebox[2em][l]{\tiny\color{numberscolor}\int_use:N \g_pprint_docline_int}
+  \exp_args:NNx \tl_replace_all:Nnn \l_pprint_tl { \cs_to_str:N \{ } { \pprint_lbrace: }
+  \exp_args:NNx \tl_replace_all:Nnn \l_pprint_tl { \cs_to_str:N \} } { \pprint_rbrace: }
+  \makebox{\texttt{\l_pprint_tl}}
   
-  \texttt{\l_pstool_tl}
-  
-  \seq_pop_left:NNT \l_pstool_line_seq \l_pstool_tl
+  \seq_pop_left:NNT \l_pprint_line_seq \l_pprint_tl
    {
     \makebox
      {%
-      \pstool_typeset_percent:
-      \space
-      \small
-      \color{blue}%
-      \pstool_doc_rescan_line:
+      \linecommentstyle
+      \pprint_typeset_startcomment:\space
+      \pprint_rescan_comment:n { \l_pprint_tl }
      }
    }
   \par
  }
 
-\errorcontextlines=999
-
-\int_new:N \g_pstool_docline_int
-\ior_open:Nn \pstool_doc_ior {pstool.sty}
-
-\cs_set_eq:NN \___tl_trim_spaces:n \tl_trim_spaces:n
-\cs_set_eq:NN \tl_trim_spaces:n \use:n % avoid space trimming inside \seq_set_split:n following (MAJOR SIDE-EFFECTS OF COURSE)
-\ior_str_map_inline:Nn \pstool_doc_ior
+\cs_new:Nn \pprint_flush_codelines:
  {
-  \int_gincr:N \g_pstool_docline_int
-  \exp_args:NNo \seq_set_split:Nnn \l_pstool_line_seq {\c_pstool_percent_str} {#1}
-  %\seq_show:N \l_pstool_line_seq
-  \seq_pop_left:NNT \l_pstool_line_seq \l_pstool_tl
+  \seq_if_empty:NF \l_pprint_codelines_seq
    {
-    \tl_if_empty:NTF \l_pstool_tl
+    \medskip
+    \seq_map_inline:Nn \l_pprint_codelines_seq
      {
-       \pstool_doc_line_comment:
+      \pprint_rescan_comment:n {##1}
+      \space   
      }
-     {
-       \pstool_doc_line_code: 
-     }
+    \seq_clear:N \l_pprint_codelines_seq
+    \smallskip
+    \par
    }
  }
-\cs_set_eq:NN \tl_trim_spaces:n \___tl_trim_spaces:n
 
 \ExplSyntaxOff
 
-%\DocInput{pstool.sty}
+\PrettyPrint {pstool.sty}
+
 
 {\addtocontents{toc}{\protect\end{varwidth}}}
 \end{document}
