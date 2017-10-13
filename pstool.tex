@@ -490,7 +490,7 @@
   \pstool@rm{\pstool@path}{\pstool@jobname.bbl}%
   \pstool@cp{}{\jobname.bbl}{\pstool@path\pstool@jobname.bbl}%
 % Scan the main document line by line; print preamble into auxiliary file until the document begins or \cs{EndPreamble} is found:
-  \endlinechar=-1
+  \endlinechar=-1\relax
   \def\@tempa{\pdfoutput=0\relax}% 
   \in@false
   \openin\pstool@mainfile@ior "\jobname"\relax 
