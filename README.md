@@ -1,5 +1,5 @@
-==================
 The pstool package
+==================
 
 A package like `pst-pdf` for processing PostScript graphics
 with psfrag labels within pdfLaTeX documents. The difference
@@ -16,27 +16,28 @@ except pstool.ins (and the PDF file, obviously).
 
 Please see the PDF documentation for further information.
 
-* Copyright 2008-2014 Zebb Prime
-* Copyright 2008-2017 Will Robertson
+* Copyright 2008–2014 Zebb Prime
+* Copyright 2008–2017 Will Robertson
 * Distributed under the LaTeX Project Public License, "maintained" by Will Robertson
 
---------------------
-Brief change history
 
-v1.5d, Oct 2017:
+Change history
+--------------------
+
+* v1.5d, Oct 2017:
   - Use `shellesc` package for write18 in LuaTeX.
 
-v1.5c:
+* v1.5c:
   - Documentation update; some minor cosmetic code changes.
 
-v1.5b:
+* v1.5b:
   - Fix conflict with beamer, which resets the catcode of @ with \begin{document}.
 
-v1.5a, March 2013:
+* v1.5a, March 2013:
   - Fix bug introduced in last version in which plain LaTeX compilation
     (producing DVI) produced erroneous output above each figure.
 
-v1.5, February 2013:
+* v1.5, February 2013:
   - Fix =/# mixup in Windows ps2pdf options.
   - Check the .tex file for newness when regenerating figures.
   - Add [macro-file=...] for a global file to retrieve psfrag macros
@@ -44,12 +45,12 @@ v1.5, February 2013:
     Thanks to Heinrich Kruger for suggestions for the above.
   - Cross-references and citations within external graphics are now supported.
 
-v1.4, November 2010:
+* v1.4, November 2010:
   - More robust parsing of the main input file to read in the preamble.
     Therefore, \EndPreamble is now required much less often.
   - Apparently unreleased to CTAN, oops :)
 
-v1.3, July 2009:
+* v1.3, July 2009:
   - [bitmap] option to control compression of bitmap graphics,
   - Package options may now be set anywhere with \pstoolsetup{},
   - localised pstool options can be set per-graphic.
