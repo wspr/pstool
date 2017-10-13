@@ -23,10 +23,14 @@ Distributed under the LaTeX Project Public License, "maintained" by Will Roberts
 ____________________
 Brief change history
 
-v1.5c
+
+v1.5d, Oct 2017:
+  - Use `shellesc` package for write18 in LuaTeX.
+
+v1.5c:
   - Documentation update; some minor cosmetic code changes.
 
-v1.5b
+v1.5b:
   - Fix conflict with beamer, which resets the catcode of @ with \begin{document}.
 
 v1.5a, March 2013:
