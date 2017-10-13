@@ -9,7 +9,7 @@
 % External packages:
 \RequirePackage{
   catchfile,color,ifpdf,ifplatform,filemod,
-  graphicx,psfrag,suffix,trimspaces,xkeyval,expl3
+  graphicx,psfrag,shellesc,suffix,trimspaces,xkeyval,expl3
 }
 
 % Add an additional command before trimspaces.sty is updated formally:
@@ -159,7 +159,7 @@
 }
 
 \def\pstool@echo@verbose#1{%
-  \immediate\write18{echo "#1"}%
+  \ShellEscape{echo "#1"}%
 }
 
 \let\pstool@includegraphics\includegraphics
@@ -174,7 +174,7 @@
 % \#2: filename
 \newcommand\pstool@rm[2]{%
   \IfFileExists{#1#2}{%
-    \immediate\write18{%
+    \ShellEscape{%
       cd "#1"\pstool@cmdsep\pstool@rm@cmd "#2"
     }%
   }{}%
@@ -186,7 +186,7 @@
 % \#3: new filename
 \newcommand\pstool@cp[3]{%
   \IfFileExists{#1#2}{%
-    \immediate\write18{%
+    \ShellEscape{%
       cd "#1"\pstool@cmdsep\pstool@cp@cmd "#2" "#3"
     }%
   }{}%
@@ -234,7 +234,7 @@
 
 % It is necessary while executing commands on the shell to write the exit status to a temporary file to test for failures in processing. (If all versions of \texttt{pdflatex} supported input pipes, things might be different.)
 \def\pstool@shellexecute#1#2{%
-  \immediate\write18{%
+  \ShellEscape{%
     cd "#1" \pstool@cmdsep
     #2 \pstool@cmdsep
     \ifwindows
@@ -246,7 +246,7 @@
     > \pstool@statusfile}%
 % That's the execution; now we need to flush the write buffer to the status file. This ensures the file is written to disk properly (allowing it to be read by \cmd\CatchFileEdef). Not necessary on Windows, whose file writing is evidently more crude/immediate.
   \ifwindows\else
-    \immediate\write18{%
+    \ShellEscape{%
       touch #1\pstool@statusfile}%
   \fi
 }
