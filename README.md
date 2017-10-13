@@ -1,7 +1,7 @@
-__________________
+==================
 The pstool package
 
-A package like "pst-pdf" for processing PostScript graphics
+A package like `pst-pdf` for processing PostScript graphics
 with psfrag labels within pdfLaTeX documents. The difference
 with this package is that every graphic is compiled individually,
 drastically speeding up compilation time when only a single
@@ -16,13 +16,12 @@ except pstool.ins (and the PDF file, obviously).
 
 Please see the PDF documentation for further information.
 
-Will Robertson & Zebb Prime
-Copyright 2008-2014
-Distributed under the LaTeX Project Public License, "maintained" by Will Robertson.
+* Copyright 2008-2014 Zebb Prime
+* Copyright 2008-2017 Will Robertson
+* Distributed under the LaTeX Project Public License, "maintained" by Will Robertson
 
-____________________
+--------------------
 Brief change history
-
 
 v1.5d, Oct 2017:
   - Use `shellesc` package for write18 in LuaTeX.
