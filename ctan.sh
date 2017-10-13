@@ -15,12 +15,12 @@ cp $PKG.ins   CTAN-TMPDIR/source/latex/$PKG/
 cp $PKG.sty   CTAN-TMPDIR/tex/latex/$PKG/
 
 cp $PKG.pdf   CTAN-TMPDIR/doc/latex/$PKG/
-cp README.txt CTAN-TMPDIR/doc/latex/$PKG/README
+cp README.md  CTAN-TMPDIR/doc/latex/$PKG/README
 
 cp $PKG.tex   CTAN-TMPDIR/$PKG/
 cp $PKG.ins   CTAN-TMPDIR/$PKG/
 cp $PKG.pdf   CTAN-TMPDIR/$PKG/
-cp README.txt CTAN-TMPDIR/$PKG/README
+cp README.md  CTAN-TMPDIR/$PKG/README
 
 cp -R example/              CTAN-TMPDIR/$PKG/example/
 cp -R CTAN-TMPDIR/$PKG/example/      CTAN-TMPDIR/doc/latex/$PKG/
