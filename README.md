@@ -18,11 +18,23 @@ Please see the PDF documentation for further information.
 
 * Copyright 2008–2014 Zebb Prime
 * Copyright 2008–2017 Will Robertson
-* Distributed under the LaTeX Project Public License, "maintained" by Will Robertson
+
+License
+-------
+
+This work may be distributed and/or modified under the
+conditions of the LaTeX Project Public License, either
+version 1.3c or (at your option) any later version.
+The latest version of this license is in:
+  <http://www.latex-project.org/lppl.txt>
+
+This work has the LPPL maintenance status `maintained'.
+
+The Current Maintainer of this work is Will Robertson.
 
 
 Change history
---------------------
+--------------
 
 * v1.5d, Oct 2017:
   - Use `shellesc` package for write18 in LuaTeX.

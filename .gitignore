@@ -1,7 +1,6 @@
 
 build/
 
-pstool.ins
 *-pstool.tex
 
 *.glo
@@ -10,7 +9,6 @@ pstool.ins
 *.toc
 *.aux
 *.log
-*.sty
 *synctex*
 *.zip
 *.nav

@@ -1,0 +1,663 @@
+%% PSTOOL.STY
+%
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either
+% version 1.3c or (at your option) any later version.
+% The latest version of this license is in:
+%   <http://www.latex-project.org/lppl.txt>
+%
+% This work has the LPPL maintenance status `maintained'.
+%
+% The Current Maintainer of this work is Will Robertson.
+
+\ProvidesPackage{pstool}[2017/10/13 v1.5d
+  Wrapper for processing PostScript/psfrag figures]
+
+% TODO: convert this package into expl3 syntax (will save many lines of code).
+
+% External packages:
+\RequirePackage{
+  catchfile,color,ifpdf,ifplatform,filemod,
+  graphicx,psfrag,shellesc,suffix,trimspaces,xkeyval,expl3
+}
+
+% Add an additional command before trimspaces.sty is updated formally:
+\providecommand*{\trim@multiple@spaces@in}[1]{% 
+  \let\trim@temp#1% 
+  \trim@spaces@in#1% 
+  \ifx\trim@temp#1% 
+  \else 
+    \expandafter\trim@multiple@spaces@in\expandafter#1% 
+  \fi 
+}
+
+% \subsection{Allocations}
+\expandafter\newif\csname if@pstool@pdfcrop@\endcsname
+\expandafter\newif\csname if@pstool@verbose@\endcsname
+\expandafter\newif\csname if@pstool@write@aux\endcsname
+
+\newwrite\pstool@out
+\newread\pstool@mainfile@ior
+\newread\pstool@auxfile@ior
+
+% Macro used to store the name of the graphic's macro file:
+\let\pstool@tex\@empty
+
+% \subsection{Package options}
+
+\define@choicekey*{pstool.sty}{crop}
+    [\@tempa\@tempb]{preview,pdfcrop}{%
+  \ifcase\@tempb\relax
+    \@pstool@pdfcrop@false
+  \or
+    \@pstool@pdfcrop@true
+  \or
+  \fi
+}
+
+\define@choicekey*{pstool.sty}{process}
+    [\@tempa\pstool@process@choice]{all,none,auto}{}
+\ExecuteOptionsX{process=auto}
+
+\define@choicekey*{pstool.sty}{mode}
+    [\@tempa\@tempb]{errorstop,nonstop,batch}{%
+  \ifnum\@tempb=2\relax
+    \@pstool@verbose@false
+  \else
+    \@pstool@verbose@true
+  \fi
+  \edef\pstool@mode{\@tempa mode}%
+}
+\ExecuteOptionsX{mode=batch}
+
+\DeclareOptionX{cleanup}{%
+  \edef\pstool@rm@files{\zap@space #1 \@empty}%
+  \@for\@ii:=\pstool@rm@files\do{%
+    \edef\@tempa{\@ii}%
+    \def\@tempb{.aux}%
+    \ifx\@tempa\@tempb
+      \PackageWarning{pstool}{^^J\space\space%
+      You have requested that ".aux" files be deleted.^^J\space\space
+      Cross-referencing within pstool graphics therefore disabled.^^J%
+      This warning occurred}
+    \fi
+  }
+}
+\ExecuteOptionsX{cleanup={.tex,.dvi,.ps,.pdf,.log}}
+
+\DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
+\ExecuteOptionsX{suffix={-pstool}}
+
+% There is an implicit \cs{space} after the bitmap options.
+\define@choicekey*{pstool.sty}{bitmap}
+    [\@tempa\@tempb]{auto,lossless,lossy}{%
+  \ifcase\@tempb
+    \let\pstool@bitmap@opts\@empty
+  \or
+    \def\pstool@bitmap@opts{%
+      -dAutoFilterColorImages=false
+      -dAutoFilterGrayImages=false
+      -dColorImageFilter=/FlateEncode
+      -dGrayImageFilter=/FlateEncode % space
+    }
+  \or
+    \def\pstool@bitmap@opts{%
+      -dAutoFilterColorImages=false
+      -dAutoFilterGrayImages=false
+      -dColorImageFilter=/DCTEncode
+      -dGrayImageFilter=/DCTEncode % space
+    }
+  \fi
+}
+\ExecuteOptionsX{bitmap=lossless}
+
+\DeclareOptionX{latex-options}{\def\pstool@latex@opts{#1}}
+\DeclareOptionX{dvips-options}{\def\pstool@dvips@opts{#1}}
+\DeclareOptionX{ps2pdf-options}{\def\pstool@pspdf@opts{#1}}
+\DeclareOptionX{pdfcrop-options}{\def\pstool@pdfcrop@opts{#1}}
+
+\ExecuteOptionsX{
+  latex-options={},
+  dvips-options={},
+  ps2pdf-options={-dPDFSETTINGS=/prepress},
+  pdfcrop-options={}
+}
+
+\DeclareOptionX{macro-file}{%
+  \IfFileExists{#1}
+    {\def\pstool@macrofile{#1}}
+    {%
+      \let\pstool@macrofile\@empty
+      \PackageError{pstool}{^^J\space\space%
+      No file `#1' found for "macro-file" package option.^^J
+      This warning occurred}
+    }
+}
+
+% Default:
+\IfFileExists{\jobname-pstool.tex}
+  {\edef\pstool@macrofile{\jobname-pstool.tex}}
+  {\let\pstool@macrofile\@empty}
+
+
+\ifpdf
+  \ifshellescape\else
+    \ExecuteOptionsX{process=none}
+    \PackageWarning{pstool}{^^J\space\space%
+      Package option [process=none] activated^^J\space\space
+      because -shell-escape is not enabled.^^J%
+      This warning occurred}
+  \fi
+\fi
+
+\ProcessOptionsX
+
+% A command to set \pkg{pstool} options after the package is loaded.
+\newcommand\pstoolsetup{%
+  \setkeys{pstool.sty}%
+}
+
+% \section{Macros}
+% Used to echo information to the console output.
+% Can't use \cs{typeout} because it's asynchronous with
+% any \cs{immediate}\cs{write18} processes (for some reason).
+\def\pstool@echo#1{%
+  \if@pstool@verbose@
+    \pstool@echo@verbose{#1}%
+  \fi
+}
+
+\def\pstool@echo@verbose#1{%
+  \ShellEscape{echo "#1"}%
+}
+
+\let\pstool@includegraphics\includegraphics
+
+% Command line abstractions between platforms:
+\edef\pstool@cmdsep{\ifwindows\string&\else\string;\fi\space}
+\edef\pstool@rm@cmd{\ifwindows del \else rm -- \fi}
+\edef\pstool@cp@cmd{\ifwindows copy \else cp -- \fi}
+
+% Delete a file if it exists:\\
+% \#1: path\\
+% \#2: filename
+\newcommand\pstool@rm[2]{%
+  \IfFileExists{#1#2}{%
+    \ShellEscape{%
+      cd "#1"\pstool@cmdsep\pstool@rm@cmd "#2"
+    }%
+  }{}%
+}
+
+% Copy a file if it exists:\\
+% \#1: path\\
+% \#2: filename\\
+% \#3: new filename
+\newcommand\pstool@cp[3]{%
+  \IfFileExists{#1#2}{%
+    \ShellEscape{%
+      cd "#1"\pstool@cmdsep\pstool@cp@cmd "#2" "#3"
+    }%
+  }{}%
+}
+
+% Generic function to execute a command on the shell and pass its exit status back into \LaTeX. Any number of \cmd\pstool@exe\ statements can be made consecutively followed by \cmd\pstool@endprocess, which also takes an argument. If \emph{any} of the shell calls failed, then the execution immediately skips to the end and expands \cmd\pstool@error\ instead of the argument to \cmd\pstool@endprocess.\\
+% \#1: `name' of process
+% \#2: relative path where to execute the command
+% \#3: the command itself
+\newcommand\pstool@exe[3]{%
+  \pstool@echo{^^J=== pstool: #1 ===}%
+  \pstool@shellexecute{#2}{#3}%
+  \pstool@retrievestatus{#2}%
+  \ifnum\pstool@status > \z@
+    \PackageWarning{pstool}{%
+      Execution failed during process:^^J\space\space
+      #3^^JThis warning occurred%
+    }%
+    \expandafter\pstool@abort
+  \fi
+}
+
+% Edit this definition to print something else when graphic processing fails.
+\def\pstool@error{%
+  \fbox{%
+    \parbox{0.8\linewidth}{%
+      \color{red}\centering\ttfamily\scshape\small
+      An error occured processing graphic:\\
+      \upshape`%
+        \detokenize\expandafter{\pstool@path}%
+        \detokenize\expandafter{\pstool@filestub}.eps%
+      '\\\bigskip
+      \tiny
+      Check the log file for compilation errors:\\
+      `%
+        \detokenize\expandafter{\pstool@path}%
+        \detokenize\expandafter{\pstool@filestub}-pstool.log%
+      '\\
+    }%
+  }%
+}
+
+\def\pstool@abort#1\pstool@endprocess{\pstool@error\@gobble}
+\let\pstool@endprocess\@firstofone
+
+% It is necessary while executing commands on the shell to write the exit status to a temporary file to test for failures in processing. (If all versions of \texttt{pdflatex} supported input pipes, things might be different.)
+\def\pstool@shellexecute#1#2{%
+  \ShellEscape{%
+    cd "#1" \pstool@cmdsep
+    #2 \pstool@cmdsep
+    \ifwindows
+       call echo
+         \string^\@percentchar ERRORLEVEL\string^\@percentchar
+    \else
+       echo \detokenize{$?}
+    \fi
+    > \pstool@statusfile}%
+% That's the execution; now we need to flush the write buffer to the status file. This ensures the file is written to disk properly (allowing it to be read by \cmd\CatchFileEdef). Not necessary on Windows, whose file writing is evidently more crude/immediate.
+  \ifwindows\else
+    \ShellEscape{%
+      touch #1\pstool@statusfile}%
+  \fi
+}
+\def\pstool@statusfile{pstool-statusfile.txt}
+
+% Read the exit status from the temporary file and delete it.
+% \#1 is the path
+% Status is recorded in \cmd\pstool@status.
+\def\pstool@retrievestatus#1{%
+  \CatchFileEdef{\pstool@status}{#1\pstool@statusfile}{}%
+  \pstool@rm{#1}{\pstool@statusfile}%
+  \ifx\pstool@status\pstool@statusfail
+    \PackageWarning{pstool}{%
+      Status of process unable to be determined:^^J  #1^^J%
+      Trying to proceed... }%
+    \def\pstool@status{0}%
+  \fi
+}
+\def\pstool@statusfail{\par }% what results when \TeX\ reads an empty file
+
+% Grab filename and filepath. Always need a relative path to a filename even if it's in the same directory.
+\def\pstool@getpaths#1{%
+  \filename@parse{#1}%
+  \ifx\filename@area\@empty
+    \def\pstool@path{./}%
+  \else
+    \let\pstool@path\filename@area
+  \fi
+  \let\pstool@filestub\filename@base
+}
+
+% The filename of the figure stripped of its path, if any:
+% (analogous to standard \cs{jobname})
+\def\pstool@jobname{\pstool@filestub\pstool@suffix}
+
+
+% \section{Command parsing}
+% User input is \cmd\pstool\ (with optional \texttt{*} or \texttt{!} suffix) which turns into one of the following three macros depending on the mode.
+
+\newcommand\pstool@alwaysprocess[3][]{%
+  \pstool@getpaths{#2}%
+  \pstool@process{#1}{#3}%
+}
+
+\ifpdf
+  \newcommand\pstool@neverprocess[3][]{%
+    \pstool@includegraphics{#2}%
+  }
+\else
+  \newcommand\pstool@neverprocess[3][]{%
+    \begingroup
+      \setkeys*{pstool.sty}{#1}%
+      #3%
+      \expandafter\pstool@includegraphics\expandafter[\XKV@rm]{#2}%
+    \endgroup
+  }
+\fi
+
+% Process the figure when:\\
+% -- the PDF file doesn't exist, or\\
+% -- the EPS is newer than the PDF, or\\
+% -- the TeX file is new than the PDF.
+\ExplSyntaxOn
+\newcommand\pstool@maybeprocess[3][]
+ {
+  \pstool_if_should_process:nTF {#2}
+   { \pstool@process{#1}{#3} }
+   { \pstool@includegraphics{#2} }
+ }
+
+\prg_set_conditional:Nnn \pstool_if_should_process:n {TF}
+ {
+  \pstool@getpaths{#1}
+
+  \file_if_exist:nF { #1.pdf }
+    { \use_i_delimit_by_q_stop:nw \prg_return_true: }
+
+  \filemodCmp {\pstool@path\pstool@filestub.eps}
+              {\pstool@path\pstool@filestub.pdf}
+              { \use_i_delimit_by_q_stop:nw \prg_return_true: } {}
+  
+  \exp_args:Nx \clist_map_inline:nn { \pstool@macrofile , \pstool@tex }
+  % empty entries are ignored in clist mappings, so no need to filter here
+   {
+    \filemodCmp {##1} {\pstool@path\pstool@filestub.pdf}
+     {
+      \clist_map_break:n { \use_i_delimit_by_q_stop:nw \prg_return_true: }
+     }
+     {}
+   }
+  
+  \filemodCmp {\pstool@path\pstool@filestub.tex}
+              {\pstool@path\pstool@filestub.pdf}
+              { \use_i_delimit_by_q_stop:nw \prg_return_true: } {}
+
+  \use_i_delimit_by_q_stop:nw \prg_return_false:
+  \q_stop
+ }
+\ExplSyntaxOff
+
+% \section{User commands}
+%  Finally, define \cmd\pstool\ as appropriate for the mode: (\texttt{all}, \texttt{none}, \texttt{auto}, respectively)
+\ifpdf
+  \newcommand\pstool{%
+    \ifcase\pstool@process@choice\relax
+      \expandafter \pstool@alwaysprocess \or
+      \expandafter \pstool@neverprocess  \or
+      \expandafter \pstool@maybeprocess
+    \fi
+  }
+  \WithSuffix\def\pstool!{%
+    \ifcase\pstool@process@choice\relax
+      \expandafter \pstool@alwaysprocess \or
+      \expandafter \pstool@neverprocess  \or
+      \expandafter \pstool@neverprocess
+    \fi
+  }
+  \WithSuffix\def\pstool*{%
+    \ifcase\pstool@process@choice\relax
+      \expandafter \pstool@alwaysprocess \or
+      \expandafter \pstool@neverprocess  \or
+      \expandafter \pstool@alwaysprocess
+    \fi
+  }
+\else
+  \let\pstool\pstool@neverprocess
+  \WithSuffix\def\pstool!{\pstool@neverprocess}
+  \WithSuffix\def\pstool*{\pstool@neverprocess}
+\fi
+
+% \section{The figure processing}
+
+% And this is the main macro.
+\newcommand\pstool@process[2]{%
+  \begingroup
+  \setkeys*{pstool.sty}{#1}%
+  \pstool@echo@verbose{%
+      ^^J^^J=== pstool: begin processing ===}%
+  \pstool@write@processfile{#1}
+      {\pstool@path\pstool@filestub}{#2}%
+  \pstool@exe{auxiliary process: \pstool@filestub\space}
+    {./}{latex
+      -shell-escape
+      -output-format=dvi
+      -output-directory="\pstool@path"
+      -interaction=\pstool@mode\space
+      \pstool@latex@opts\space
+          "\pstool@jobname.tex"}%
+% Execute \texttt{dvips} in quiet mode if \texttt{latex} is not run in (non/error)stop mode:
+  \pstool@exe{dvips}{\pstool@path}{%
+    dvips \if@pstool@verbose@\else -q \fi -Ppdf 
+        \pstool@dvips@opts\space "\pstool@jobname.dvi"}%
+% Pre-process \texttt{ps2pdf} options for Windows (sigh):
+  \pstool@pspdf@opts@preprocess \pstool@bitmap@opts
+  \pstool@pspdf@opts@preprocess \pstool@pspdf@opts
+% Generate the PDF:
+  \if@pstool@pdfcrop@
+    \pstool@exe{ps2pdf}{\pstool@path}{%
+      ps2pdf \pstool@bitmap@opts \pstool@pspdf@opts \space
+          "\pstool@jobname.ps" "\pstool@jobname.pdf"}%
+    \pstool@exe{pdfcrop}{\pstool@path}{%
+      pdfcrop \pstool@pdfcrop@opts\space
+          "\pstool@jobname.pdf" "\pstool@filestub.pdf"}%
+  \else
+    \pstool@exe{ps2pdf}{\pstool@path}{%
+      ps2pdf \pstool@bitmap@opts \pstool@pspdf@opts \space
+          "\pstool@jobname.ps" "\pstool@filestub.pdf"}%
+  \fi
+% Finish up: (implies success!)
+  \pstool@endprocess{%
+    \pstool@includegraphics{\pstool@path\pstool@filestub}%
+% Emulate \cs{include} (sort of) and have the main document load the auxiliary aux file, in a manner of speaking:
+    \pstool@write@aux
+    \pstool@cleanup
+  }%
+  \pstool@echo@verbose{^^J=== pstool: end processing ===^^J}%
+  \endgroup
+}
+
+\newcommand\pstool@write@aux{%
+  \endlinechar=-1\relax
+  \@tempswatrue 
+  \@pstool@write@auxfalse
+  \in@false
+  \openin \pstool@auxfile@ior "\pstool@path\pstool@jobname.aux"\relax 
+  \@whilesw \if@tempswa \fi {%
+    \readline \pstool@auxfile@ior to \@tempa 
+    \ifeof \pstool@auxfile@ior
+      \@tempswafalse
+    \else
+      \edef\@tempb{\detokenize\expandafter{\pstool@auxmarker@text/}}%
+      \ifx\@tempa\@tempb
+        \@tempswafalse
+      \else
+        \if@pstool@write@aux
+          \immediate\write\@mainaux{\unexpanded\expandafter{\@tempa}}%
+        \fi
+        \edef\@tempb{\detokenize\expandafter{\pstool@auxmarker@text*}}%
+        \ifx\@tempa\@tempb
+          \@pstool@write@auxtrue
+        \fi
+      \fi
+    \fi
+  }%
+  \closein \pstool@auxfile@ior  
+}
+
+\ExplSyntaxOn
+\cs_new:Npn \pstool@pspdf@opts@preprocess #1
+ {
+  \ifwindows
+    \exp_args:NNnx \tl_replace_all:Nnn #1 {=} { \cs_to_str:N \# }
+  \fi
+ }
+\ExplSyntaxOff
+
+% For what's coming next.
+\edef\@begindocument@str{\detokenize\expandafter{\string\begin{document}}}
+\edef\@endpreamble@str{\string\EndPreamble}
+\def\in@first#1#2{\in@{NEVEROCCUR!#1}{NEVEROCCUR!#2}}
+
+% We need to cache the aux file, so here goes.
+% This is because the aux file is cleared for writing after \cs{begin{document}}.
+\ifpdf
+  \pstool@rm{}{\jobname.oldaux}
+  \pstool@cp{}{\jobname.aux}{\jobname.oldaux}
+  \AtEndDocument{\pstool@rm{}{\jobname.oldaux}}
+\fi
+
+\edef\pstool@auxmarker#1{\string\@percentchar\space <#1PSTOOLLABELS>}
+\edef\pstool@auxmarker@text#1{\@percentchar <#1PSTOOLLABELS>}
+
+% The file that is written for processing is set up to read the preamble of the original document and set the graphic on an empty page (cropping to size is done either here with \pkg{preview} or later with \pkg{pdfcrop}).
+\def\pstool@write@processfile#1#2#3{%
+  \immediate\openout\pstool@out #2\pstool@suffix.tex\relax
+% Put down a label so we can pass through the current page number:
+  \edef\pstool@label{pstool-\pstool@path\pstool@filestub}%
+  \protected@write\@auxout{}%
+    {\string\newlabel{\pstool@label}{{\@currentlabel}{\the\c@page}}}%
+% And copy the main file's bbl file too: (necessary only for biblatex but do it always)
+  \pstool@rm{\pstool@path}{\pstool@jobname.bbl}%
+  \pstool@cp{}{\jobname.bbl}{\pstool@path\pstool@jobname.bbl}%
+% Scan the main document line by line; print preamble into auxiliary file until the document begins or \cs{EndPreamble} is found:
+  \endlinechar=-1\relax
+  \def\@tempa{\pdfoutput=0\relax}% 
+  \in@false
+  \openin\pstool@mainfile@ior "\jobname"\relax 
+  \@whilesw \unless\ifin@ \fi {%
+    \immediate\write\pstool@out{\unexpanded\expandafter{\@tempa}}%
+    \readline\pstool@mainfile@ior to\@tempa 
+    \let\@tempc\@tempa
+    \trim@multiple@spaces@in\@tempa
+    \expandafter\expandafter\expandafter\in@first
+    \expandafter\expandafter\expandafter{%
+    \expandafter\@begindocument@str
+    \expandafter}%
+    \expandafter{\@tempa}%
+    \unless\ifin@
+      \expandafter\expandafter\expandafter\in@first
+      \expandafter\expandafter\expandafter{%
+      \expandafter\@endpreamble@str
+      \expandafter}%
+      \expandafter{\@tempa}%
+    \fi
+  }
+  \closein\pstool@mainfile@ior
+% Now the preamble of the process file:
+  \immediate\write\pstool@out{%
+    \if@pstool@pdfcrop@\else
+      \noexpand\usepackage[active,tightpage]{preview}^^J%
+    \fi
+    \unexpanded{%
+      \pagestyle{empty}^^J^^J% remove the page number
+    }%
+    \noexpand\makeatletter^^J%
+% Sort out the page numbering here.
+% Force the pagestyle locally to output an integer so it can be written to the external file inside a \cs{setcounter} command.
+    \expandafter\ifx\csname r@\pstool@label\endcsname\relax\else
+      \def\noexpand\thepage{\unexpanded\expandafter{\thepage}}^^J%
+      \noexpand\setcounter{page}{%
+        \expandafter\expandafter\expandafter
+          \@secondoftwo\csname r@\pstool@label\endcsname
+      }^^J%
+    \fi
+% And the document body to place the graphic on a page of its own:
+    \noexpand\@input{\jobname.oldaux}^^J%
+    \noexpand\makeatother^^J^^J%
+    \noexpand\begin{document}^^J%
+    \noexpand\makeatletter^^J%
+    \unexpanded{\immediate\write\@mainaux}{\pstool@auxmarker*}^^J%
+    \noexpand\makeatother^^J^^J%
+    \unexpanded{%
+      \centering\null\vfill^^J%
+    }%
+    ^^J%
+    \if@pstool@pdfcrop@\else
+      \noexpand\begin{preview}^^J%
+    \fi
+    \unexpanded{#3^^J}
+    \noexpand\includegraphics
+        [\unexpanded\expandafter{\XKV@rm}]
+        {\pstool@filestub}^^J%
+    \if@pstool@pdfcrop@\else
+      \noexpand\end{preview}^^J%
+    \fi
+    ^^J%
+    \unexpanded{\vfill^^J^^J\makeatletter^^J\immediate\write\@mainaux}{\pstool@auxmarker/}^^J%
+    \unexpanded{\makeatother^^J\end{document}}^^J%
+  }%
+  \immediate\closeout\pstool@out
+}
+
+\def\pstool@cleanup{%
+  \@for\@ii:=\pstool@rm@files\do{%
+    \pstool@rm{\pstool@path}{\pstool@jobname\@ii}%
+  }%
+}
+
+\providecommand\EndPreamble{}
+
+% \section{User commands}
+% These all support the suffixes \texttt{*} and \texttt{!}, so each user command is defined as a wrapper to \cmd\pstool.
+
+% For EPS figures with psfrag:
+\newcommand\psfragfig[2][]{\pstool@psfragfig{#1}{#2}{}}
+\WithSuffix\newcommand\psfragfig*[2][]{%
+  \pstool@psfragfig{#1}{#2}{*}%
+}
+\WithSuffix\newcommand\psfragfig![2][]{%
+  \pstool@psfragfig{#1}{#2}{!}%
+}
+
+% Parse optional input definitions:
+\newcommand\pstool@psfragfig[3]{%
+  \@ifnextchar\bgroup{%
+    \pstool@@psfragfig{#1}{#2}{#3}%
+  }{%
+    \pstool@@psfragfig{#1}{#2}{#3}{}%
+  }%
+}
+
+% Search for both `filename' and `filename'-psfrag inputs.\\
+% \#1: possible graphicx options\\
+% \#2: graphic name (possibly with path)\\
+% \#3: \cs{pstool} suffix (i.e., \texttt{!} or \texttt{*} or `empty')\\
+% \#4: possible \pkg{psfrag} (or other) macros
+\newcommand\pstool@@psfragfig[4]{%
+  % Find the .eps file to use.
+  \IfFileExists{#2-psfrag.eps}{%
+    \edef\pstool@eps{#2-psfrag}%
+    \IfFileExists{#2.eps}{%
+      \PackageWarning{pstool}{%
+        Graphic "#2.eps" exists but "#2-psfrag.eps" is being used%
+      }%
+    }{}%
+  }{%
+    \IfFileExists{#2.eps}{%
+      \edef\pstool@eps{#2}%
+    }{%
+      \PackageError{pstool}{%
+        No graphic "#2.eps" or "#2-psfrag.eps" found%
+      }{%
+        Check the path and whether the file exists.%
+      }%
+    }%
+  }%
+  % Find the .tex file to use.
+  \IfFileExists{#2-psfrag.tex}{%
+    \edef\pstool@tex{#2-psfrag.tex}%
+    \IfFileExists{#2.tex}{%
+      \PackageWarning{pstool}{%
+        File "#2.tex" exists that may contain macros
+        for "\pstool@eps.eps"^^J%
+        But file "#2-psfrag.tex" is being used instead.%
+      }%
+    }{}%
+  }{%
+    \IfFileExists{#2.tex}{%
+      \edef\pstool@tex{#2.tex}%
+    }{%
+      \PackageWarning{pstool}{%
+        No file "#2.tex" or "#2-psfrag.tex" can be found
+        that may contain macros for "\pstool@eps.eps"%
+      }%
+    }%
+  }%
+  % Perform the actual processing step, skipping it entirely if an EPS file hasn't been found.
+  % (In which case an error would have been called above; this is to clean up nicely in scrollmode, for example.)
+  \ifx\pstool@eps\@undefined\else
+    \edef\@tempa{%
+      \unexpanded{\pstool#3[#1]}{\pstool@eps}{%
+        \ifx\pstool@macrofile\@empty\else
+          \unexpanded{\csname @input\endcsname}{\pstool@macrofile}%
+        \fi
+        \ifx\pstool@tex\@empty\else
+          \unexpanded{\csname @input\endcsname}{\pstool@tex}%
+        \fi
+        \unexpanded{#4}%
+      }%
+    }\@tempa
+  \fi
+}
+% \centerline{\itshape ---The End---}
+
+%%%%%%%%%1%%%%%%%%%2%%%%%%%%%3%%%%%%%%%4%%%%%%%%%5
