@@ -11,14 +11,12 @@ mkdir -p -v   CTAN-TMPDIR/doc/latex/$PKG/example/subdir
 mkdir -p -v   CTAN-TMPDIR/$PKG/example/subdir/
 
 cp $PKG.tex   CTAN-TMPDIR/source/latex/$PKG/
-cp $PKG.ins   CTAN-TMPDIR/source/latex/$PKG/
 cp $PKG.sty   CTAN-TMPDIR/tex/latex/$PKG/
 
 cp $PKG.pdf   CTAN-TMPDIR/doc/latex/$PKG/
 cp README.md  CTAN-TMPDIR/doc/latex/$PKG/README
 
 cp $PKG.tex   CTAN-TMPDIR/$PKG/
-cp $PKG.ins   CTAN-TMPDIR/$PKG/
 cp $PKG.pdf   CTAN-TMPDIR/$PKG/
 cp README.md  CTAN-TMPDIR/$PKG/README
 
