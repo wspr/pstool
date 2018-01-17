@@ -10,7 +10,6 @@ git clean -f
 x=`pwd`
 cd ../..
 pwd
-latex pstool.ins
 cp pstool.sty "$x"
 
 cd "$x"
