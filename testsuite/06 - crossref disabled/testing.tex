@@ -1,0 +1,40 @@
+
+\documentclass{article}
+\usepackage{color}
+\usepackage[cleanup={},process=all,crossref=false]{pstool}
+\input macros.tex
+
+\usepackage{expl3}
+\begin{document}
+
+Subscript to $Z$ has the current page:
+\begin{center}
+\fbox{\psfragfig[angle=45]{subdir/trial2}{%
+  \psfrag{[Mp]}{$Z_{\thepage}$}%
+}}
+\end{center}
+
+\clearpage
+filler page
+\begin{equation}
+a=b+c\label{eq1}
+\end{equation}
+\begin{equation}
+a=b+c\label{eq2}
+\end{equation}
+\begin{equation}
+a=b+c\label{eq3}
+\end{equation}
+
+\newpage
+In the third, hopefully the scale command works.
+Here we are referencing an equation from the previous page in the $Z$ subscript and the current page number should show up in there too.
+
+\begin{center}
+\fbox{\psfragfig[scale=0.5]{trial2}{%
+  \psfrag{[Mp]}{$Z_{(\ref{eq3})}$}%
+  \psfrag{[ev]}{\thepage}
+}}
+\end{center}
+
+\end{document}

@@ -34,7 +34,8 @@
 % \subsection{Allocations}
 \expandafter\newif\csname if@pstool@pdfcrop@\endcsname
 \expandafter\newif\csname if@pstool@verbose@\endcsname
-\expandafter\newif\csname if@pstool@write@aux\endcsname
+\expandafter\newif\csname if@pstool@crossref@\endcsname
+\expandafter\newif\csname if@pstool@has@written@aux\endcsname
 
 \newwrite\pstool@out
 \newread\pstool@mainfile@ior
@@ -72,6 +73,7 @@
 
 \DeclareOptionX{cleanup}{%
   \edef\pstool@rm@files{\zap@space #1 \@empty}%
+  \if@pstool@crossref@
   \@for\@ii:=\pstool@rm@files\do{%
     \edef\@tempa{\@ii}%
     \def\@tempb{.aux}%
@@ -81,9 +83,20 @@
       Cross-referencing within pstool graphics therefore disabled.^^J%
       This warning occurred}
     \fi
-  }
+  }%
+  \fi
 }
 \ExecuteOptionsX{cleanup={.tex,.dvi,.ps,.pdf,.log}}
+
+\define@choicekey*{pstool.sty}{crossref}[\@tempa\@tempb]{false,true}{%
+  \ifcase\@tempb\relax
+    \@pstool@crossref@false
+  \or
+    \@pstool@crossref@true
+  \or
+  \fi
+}
+\ExecuteOptionsX{crossref=true}
 
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
 \ExecuteOptionsX{suffix={-pstool}}
@@ -428,7 +441,9 @@
   \pstool@endprocess{%
     \pstool@includegraphics{\pstool@path\pstool@filestub}%
 % Emulate \cs{include} (sort of) and have the main document load the auxiliary aux file, in a manner of speaking:
-    \pstool@write@aux
+    \if@pstool@crossref@
+      \pstool@write@aux
+    \fi
     \pstool@cleanup
   }%
   \pstool@echo@verbose{^^J=== pstool: end processing ===^^J}%
@@ -438,7 +453,7 @@
 \newcommand\pstool@write@aux{%
   \endlinechar=-1\relax
   \@tempswatrue 
-  \@pstool@write@auxfalse
+  \@pstool@has@written@auxfalse
   \in@false
   \openin \pstool@auxfile@ior "\pstool@path\pstool@jobname.aux"\relax 
   \@whilesw \if@tempswa \fi {%
@@ -450,12 +465,12 @@
       \ifx\@tempa\@tempb
         \@tempswafalse
       \else
-        \if@pstool@write@aux
+        \if@pstool@has@written@aux
           \immediate\write\@mainaux{\unexpanded\expandafter{\@tempa}}%
         \fi
         \edef\@tempb{\detokenize\expandafter{\pstool@auxmarker@text*}}%
         \ifx\@tempa\@tempb
-          \@pstool@write@auxtrue
+          \@pstool@has@written@auxtrue
         \fi
       \fi
     \fi
@@ -492,12 +507,14 @@
 \def\pstool@write@processfile#1#2#3{%
   \immediate\openout\pstool@out #2\pstool@suffix.tex\relax
 % Put down a label so we can pass through the current page number:
-  \edef\pstool@label{pstool-\pstool@path\pstool@filestub}%
-  \protected@write\@auxout{}%
-    {\string\newlabel{\pstool@label}{{\@currentlabel}{\the\c@page}}}%
+  \if@pstool@crossref@
+    \edef\pstool@label{pstool-\pstool@path\pstool@filestub}%
+    \protected@write\@auxout{}%
+      {\string\newlabel{\pstool@label}{{\@currentlabel}{\the\c@page}}}%
 % And copy the main file's bbl file too: (necessary only for biblatex but do it always)
-  \pstool@rm{\pstool@path}{\pstool@jobname.bbl}%
-  \pstool@cp{}{\jobname.bbl}{\pstool@path\pstool@jobname.bbl}%
+    \pstool@rm{\pstool@path}{\pstool@jobname.bbl}%
+    \pstool@cp{}{\jobname.bbl}{\pstool@path\pstool@jobname.bbl}%
+  \fi
 % Scan the main document line by line; print preamble into auxiliary file until the document begins or \cs{EndPreamble} is found:
   \endlinechar=-1\relax
   \def\@tempa{\pdfoutput=0\relax}% 
@@ -533,6 +550,7 @@
     \noexpand\makeatletter^^J%
 % Sort out the page numbering here.
 % Force the pagestyle locally to output an integer so it can be written to the external file inside a \cs{setcounter} command.
+    \if@pstool@crossref@
     \expandafter\ifx\csname r@\pstool@label\endcsname\relax\else
       \def\noexpand\thepage{\unexpanded\expandafter{\thepage}}^^J%
       \noexpand\setcounter{page}{%
@@ -540,13 +558,18 @@
           \@secondoftwo\csname r@\pstool@label\endcsname
       }^^J%
     \fi
+    \fi
 % And the document body to place the graphic on a page of its own:
+    \if@pstool@crossref@
     \noexpand\@input{\jobname.oldaux}^^J%
+    \fi
     \noexpand\makeatother^^J^^J%
     \noexpand\begin{document}^^J%
+    \if@pstool@crossref@
     \noexpand\makeatletter^^J%
     \unexpanded{\immediate\write\@mainaux}{\pstool@auxmarker*}^^J%
     \noexpand\makeatother^^J^^J%
+    \fi
     \unexpanded{%
       \centering\null\vfill^^J%
     }%
@@ -562,8 +585,11 @@
       \noexpand\end{preview}^^J%
     \fi
     ^^J%
+    \if@pstool@crossref@
     \unexpanded{\vfill^^J^^J\makeatletter^^J\immediate\write\@mainaux}{\pstool@auxmarker/}^^J%
-    \unexpanded{\makeatother^^J\end{document}}^^J%
+    \unexpanded{\makeatother^^J}^^J%
+    \fi
+    \unexpanded{\end{document}}^^J%
   }%
   \immediate\closeout\pstool@out
 }
