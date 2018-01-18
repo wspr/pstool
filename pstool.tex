@@ -82,7 +82,7 @@ The disadvantage with this method is that for every document compilation, \emph{
 
 At present this package is designed solely as a replacement for \pkg{pst-pdf} in the r\^ole of supporting the \pkg{psfrag} package (which it loads) in pdf\/\LaTeX. 
 
-More flexible usage to provide a complete replacement for \pkg{pst-pdf} (e.g., supporting the \cs{begin\{postscript\}} environment) is planned for a later release.
+More flexible usage to provide a complete replacement for \pkg{pst-pdf} (e.g., supporting the \cs{begin\{postscript\}} environment) is not planned at this stage.
 If you simply need to automatically convert plain \EPS\ files to \PDF, I recommend using the \pkg{epstopdf} package with the \pkgopt{update,prepend} package options (\pkg{epstopdf} and \pkg{pstool} are compatible, but \textbf{only} if \pkg{epstopdf} is loaded first).
 
 \section{Getting started}
@@ -141,14 +141,10 @@ As mentioned in the previous section, these options also may be set in the optio
 \subsection{Macro file(s)}
 \label{macrofile}
 
-\textbf{New in v1.5}.
 As mentioned above, macro files can be used to store commands for processing \pkg{psfrag} graphics.
 If they change, these macro files can trigger a pre-compilation of the graphics.
-While usually the macro files will be defined per-graphic (such as \texttt{foo.eps} having a \texttt{foo-psfrag.tex} file), \pkg{pstool} will also load a `master' macro file for each graphic if it exists.
+While usually the macro files will be defined per-graphic (such as \texttt{foo.eps} having a \texttt{foo-psfrag.tex} file), \pkg{pstool} will also load a `master' macro file for each graphic if it exists using the \pkgopt{macro-file=...} option.
 
-\begin{description}
-  \item[\pkgopt{macro-file = ...}]
-\end{description}
 The default is \pkgopt{macro-file=\meta{jobname}\texttt{-pstool.tex}}; if this file does not exist then no macro file is loaded.
 That is, if your document is called \texttt{thesis.tex}, the master macro file will be loaded in each graphic as \texttt{thesis-pstool.tex}, if it exists.
 
@@ -169,6 +165,7 @@ While the suffixes |*| and |!| can be used to force or disable (respectively) th
 \item[\pkgopt{process=none}] Suffixes are ignored and no \cmd\pstool\ graphics are processed.\footnote{If \pkg{pstool} is loaded in a \LaTeX\ document in \DVI\ mode, this is the option that is used since no external processing is required for these graphics.}
 \end{description}
 
+
 \subsection{Cropping graphics}
 The default option \pkgopt{crop=preview} selects the \pkg{preview} package to crop graphics to the appropriate size for each auxiliary process.
 
@@ -183,6 +180,7 @@ As an example, if the figure is called |ex.eps|, the files that are created are 
 The default is \pkgopt{cleanup=\{.tex,\,.dvi,\,.ps,\,.pdf,\,.log\}}. To delete none of the temporary files, choose \pkgopt{cleanup=\{\}} (useful for debugging).
 Note that if you want cross-referencing to work correctly for labels in figures, etc., then you must not delete the |.aux| file (see Section~\ref{xref}).
 
+
 \subsection{Interaction mode of the auxiliary processes}
 Each graphic echoes the output of its auxiliary process to the console window; unless you are trying to debug errors there is little interest in seeing this information. The behaviour of these auxiliary processes are governed globally by the \pkgopt{mode} package option, which takes the following parameters:
 \begin{description}
@@ -191,6 +189,7 @@ Each graphic echoes the output of its auxiliary process to the console window; u
 \item[\pkgopt{mode=errorstop}] prompt for user input when errors are encountered.
 \end{description}
 These three package options correspond to the \LaTeX\ command line options \texttt{-interaction=batchmode}, \texttt{=nonstopmode}, and \texttt{=errorstopmode}, respectively. When \pkgopt{mode=batch} is activated, then \pkg{dvips} is also run in `quiet mode'.
+
 
 \subsection{Auxiliary processing command line options}
 The command line options passed to each program of the auxiliary processing can be changed with the following package options:
@@ -205,11 +204,12 @@ For the most part these will be unnecessary, although passing the correct option
 This forces the `base fourteen' fonts to be embedded within the individual figure files, without which some printers and \textsc{pdf} viewers have trouble with the textual labels. In fact, from v1.3 of \pkg{pstool}, this option is now the default.
 Note that subsequent calls to \pkgopt{ps2pdf-options=...} will override the \pkg{pstool} default; use |ps2pdf-options={}| to erase |ps2pdf|'s defaults if necessary.
 
-\textbf{New in 1.5}: recently, the behaviour of |ps2pdf| has changed under Windows.
-In the past, options to |ps2pdf| needed to be quoted and use |=| to assign its options.
-Something about this has now changed, and it appears the best way to set |ps2pdf| options to use the |#| character instead. Therefore, \pkg{pstool} attempts to be clever and replaces all instances of |=| within a |ps2pdf| option into |#| (under Windows only).
+At some point in the past, the behaviour of |ps2pdf| has changed under Windows.
+Previously, options to |ps2pdf| needed to be quoted and use |=| to assign its options.
+Something about this changed, and it appears the best way to set |ps2pdf| options to use the |#| character instead. Therefore, \pkg{pstool} attempts to be clever and replaces all instances of |=| within a |ps2pdf| option into |#| (under Windows only).
 No quotes are added.
-Windows uses can therefore continue to use |=| to set |ps2pdf| options and allow \pkg{pstool} to make the substitution; their documents will still compile correctly on Mac OS X or Linux platforms.
+Windows uses can therefore continue to use |=| to set |ps2pdf| options and allow \pkg{pstool} to make the substitution; their documents will still compile correctly on macOS or Linux platforms.
+
 
 \subsection{Compression of bitmap data}
 In the conversion using |ps2pdf|, bitmap images are stored using either lossy or lossless compression. The default behaviour for \pkg{pstool} is to force lossless compression, because we believe that to be the most commonly desired use case (you don't want scientific graphics rendered with possible compression artifacts). This behaviour can be adjusted using one of these options:\footnote{Technical details are given in section~\ref{sec:bitmapdetails}.}
@@ -220,6 +220,14 @@ In the conversion using |ps2pdf|, bitmap images are stored using either lossy or
 \end{description}
 These are just special cases of the \pkgopt{ps2pdf-options=...} option, but using \pkgopt{bitmap=...} is much more convenient since the |ps2pdf| options to effect this behaviour are quite verbose.
 Note that the |auto| and |lossy| outputs differ in quality; |lossy| is lower quality than |auto| even when the latter uses a lossy compression scheme. Adjusting the quality for these options is only possible with relatively complex Ghostscript options.
+
+
+\subsection{Cross-referencing}
+To allow graphics that relied on cross-referencing of equation numbers, bibliographic citations, and so on, \pkg{pstool} attempts to transfer data to and from the |.aux| file for each processed graphic. See Section~\ref{xref} for more details.
+This feature can be disabled for compatibility or performance reasons using the \pkgopt{crossref=false} option.
+(Its converse, \pkgopt{crossref=true}, is the default in case you wish to set it explicitly.)
+
+Enabling or disabling the cross-referencing feature can only be performed in the preamble of the document.
 
 \section{Miscellaneous details}
 
@@ -255,7 +263,7 @@ This is also handy to bypass anything in the preamble that will never be require
 \subsection{Cross-referencing}
 \label{xref}
 
-\textbf{New in v1.5}: \pkg{pstool} now supports cross-referencing within graphics.
+\pkg{pstool} supports cross-referencing within graphics.
 That is, you can use |\ref| and |\cite|, etc., within \pkg{psfrag} commands.
 In fact, references to page numbers within an external figure should now resolve correctly; e.g., you can use |\thepage| within a \pkg{psfrag} command.
 (I haven't really tested, but this should allow any package that writes information to the |.aux| file to work correctly.)
@@ -264,6 +272,9 @@ The implementation to achieve this is somewhat convoluted and difficult to exten
 The main gotcha to keep in mind is that when cross-referencing is used, the graphics will need multiple compilations to resolve all the cross-references properly.
 Therefore, I recommend when setting such figures up in your document to use the |\psfragfig*| command, which forces graphics compilation every time, and remove the star only when you're sure the graphic is now correct.
 Alternatively, don't worry about the resolving of the cross-references until the very end, and then load the package with the \pkgopt{process=all} option.
+
+As the code for processing data through the |.aux| file can have unwanted interactions with other packages,
+or just be a little slower, you can disable the cross-referencing feature by loading \pkg{pstool} with the \pkgopt{crossref=false} package option.
 
 \subsection{A note on file paths}
 

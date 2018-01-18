@@ -96,6 +96,8 @@
   \or
   \fi
 }
+\@onlypreamble\@pstool@crossref@true
+\@onlypreamble\@pstool@crossref@false
 \ExecuteOptionsX{crossref=true}
 
 \DeclareOptionX{suffix}{\def\pstool@suffix{#1}}
@@ -492,8 +494,7 @@
 \edef\@endpreamble@str{\string\EndPreamble}
 \def\in@first#1#2{\in@{NEVEROCCUR!#1}{NEVEROCCUR!#2}}
 
-% We need to cache the aux file, so here goes.
-% This is because the aux file is cleared for writing after \cs{begin{document}}.
+% We need to cache the aux file, since it is cleared for writing after \cs{begin{document}}.
 \ifpdf
   \pstool@rm{}{\jobname.oldaux}
   \pstool@cp{}{\jobname.aux}{\jobname.oldaux}
@@ -537,7 +538,7 @@
       \expandafter}%
       \expandafter{\@tempa}%
     \fi
-  }
+  }%
   \closein\pstool@mainfile@ior
 % Now the preamble of the process file:
   \immediate\write\pstool@out{%
