@@ -7,7 +7,7 @@
 \usepackage{expl3}
 \begin{document}
 
-Subscript to $Z$ has the current page:
+Subscript to $Z$ (to current page) should be unresolved:
 \begin{center}
 \fbox{\psfragfig[angle=45]{subdir/trial2}{%
   \psfrag{[Mp]}{$Z_{\thepage}$}%
@@ -27,8 +27,7 @@ a=b+c\label{eq3}
 \end{equation}
 
 \newpage
-In the third, hopefully the scale command works.
-Here we are referencing an equation from the previous page in the $Z$ subscript and the current page number should show up in there too.
+Here we are referencing an equation from the previous page in the $Z$ subscript and the current page number should show up in there too. Except the feature has been disabled, so they should both be unresolved.
 
 \begin{center}
 \fbox{\psfragfig[scale=0.5]{trial2}{%
