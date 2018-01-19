@@ -3,21 +3,18 @@ The pstool package
 
 A package like `pst-pdf` for processing PostScript graphics
 with psfrag labels within pdfLaTeX documents. The difference
-with this package is that every graphic is compiled individually,
-drastically speeding up compilation time when only a single
-figure needs re-processing.
-
-Running `latex` on pstool.tex will produce the files
-  pstool.ins, pstool.sty, and README.txt,
-and compile the PDF documentation.
-
-Executing `latex pstool.ins` produces the files above
-except pstool.ins (and the PDF file, obviously).
+with this package is that every graphic is compiled individually
+in a separate process, drastically speeding up compilation time
+when only a single figure needs re-processing.
 
 Please see the PDF documentation for further information.
 
+An example and a testsuite is available in the source repository
+for the package: <https://github.com/wspr/pstool>
+
 * Copyright 2008–2014 Zebb Prime
-* Copyright 2008–2017 Will Robertson
+* Copyright 2008–2018 Will Robertson
+
 
 License
 -------
@@ -35,6 +32,9 @@ The Current Maintainer of this work is Will Robertson.
 
 Change history
 --------------
+
+* v1.5e, Jan 2018:
+  - New package option `crossref=false` to disable cross-referencing support.
 
 * v1.5d, Oct 2017:
   - Use `shellesc` package for write18 in LuaTeX.
